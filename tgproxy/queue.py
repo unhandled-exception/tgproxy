@@ -5,7 +5,18 @@ import tgproxy.errors as errors
 DEFAULT_QUEUE_MAXSIZE = 1000
 
 
-class MemoryQueue:
+class BaseQueue:
+    async def enqueue(self, message):
+        raise NotImplementedError()
+
+    async def dequeue(self):
+        raise NotImplementedError()
+
+    async def regain(self, message):
+        raise NotImplementedError()
+
+
+class MemoryQueue(BaseQueue):
     def __init__(self, maxsize=DEFAULT_QUEUE_MAXSIZE):
         self._queue = asyncio.Queue(maxsize)
 
