@@ -1,7 +1,7 @@
-from tgproxy.app import App
+from tgproxy.app import APIApp
 from tgproxy.channel import build_channel
 
 __all__ = [
-    'App',
+    'APIApp',
     'build_channel',
 ]

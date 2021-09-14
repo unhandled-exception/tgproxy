@@ -3,9 +3,8 @@ from aiohttp import web
 import tgproxy.errors as errors
 
 
-class WebApp:
-    def __init__(self, channels, host='localhost', port='5000'):
-        self._channels = dict(channels)
+class BaseApp:
+    def __init__(self, host='localhost', port='5000'):
         self._host = host
         self._port = port
 
@@ -62,9 +61,10 @@ class WebApp:
         )
 
 
-class App(WebApp):
+class APIApp(BaseApp):
     def __init__(self, channels, host, port):
-        super().__init__(channels, host=host, port=port)
+        super().__init__(host=host, port=port)
+        self._channels = dict(channels)
         self._app.add_routes([
             web.get('/', self.on_index),
             web.post('/{channel}', self.on_channel),
