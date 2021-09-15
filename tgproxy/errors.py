@@ -4,3 +4,7 @@ class BaseError(Exception):
 
 class QueueFull(BaseError):
     http_status = 503
+
+
+class ChannelNotFound(BaseError):
+    http_status = 404

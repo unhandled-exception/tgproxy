@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import tgproxy.errors as errors
 
@@ -19,11 +20,13 @@ class BaseQueue:
 class MemoryQueue(BaseQueue):
     def __init__(self, maxsize=DEFAULT_QUEUE_MAXSIZE):
         self._queue = asyncio.Queue(maxsize)
+        self._log = logging.getLogger('tgproxy.queue.memory')
 
     async def enqueue(self, message):
         try:
             # Кладем очередь без блокировок на ожидании особождения места в очереди
-            return self._queue.put_nowait(message)
+            self._log.info(f'Enque message {repr(message)}')
+            self._queue.put_nowait(message)
         except asyncio.QueueFull:
             raise errors.QueueFull('Queue is full. Max size is {self.maxsize}')
 
