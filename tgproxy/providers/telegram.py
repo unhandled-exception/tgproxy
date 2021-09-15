@@ -1,3 +1,4 @@
+import functools
 import logging
 
 import aiohttp
@@ -25,13 +26,9 @@ class TelegramChat:
 
         self._log = logging.getLogger(f'tgproxy.providers.telegram.bot{self._bot_name}.{self.chat_id}')
 
-        self.__session = None
-
-    @property
+    @functools.cache
     def _session(self):
-        if not self.__session:
-            self.__session = aiohttp.ClientSession()
-        return self.__session
+        return aiohttp.ClientSession()
 
     async def _request(self, method, request_data):
         resp = await self._session.post(
