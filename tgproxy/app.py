@@ -1,3 +1,4 @@
+
 import asyncio
 import logging
 
@@ -7,7 +8,7 @@ import tgproxy.errors as errors
 
 
 class BaseApp:
-    def __init__(self, host='localhost', port='5000'):
+    def __init__(self, host, port):
         self._log = logging.getLogger('tgproxy.app')
         self._host = host
         self._port = port
@@ -31,7 +32,7 @@ class BaseApp:
     def success_response(self, status=200, **kwargs):
         return web.json_response(
             data=dict(
-                status='OK',
+                status='success',
                 **kwargs
             ),
             status=status,
@@ -66,8 +67,9 @@ class BaseApp:
 
 
 class APIApp(BaseApp):
-    def __init__(self, channels, host, port):
+    def __init__(self, channels, host='localhost', port='5000'):
         super().__init__(host=host, port=port)
+
         self._channels = dict(channels)
         self._app.add_routes([
             web.get('/', self.on_index),
@@ -83,6 +85,7 @@ class APIApp(BaseApp):
             self._background_tasks.append(
                 asyncio.create_task(
                     ch.process_queue(),
+                    name=ch,
                 ),
             )
 
@@ -90,6 +93,29 @@ class APIApp(BaseApp):
         for task in self._background_tasks:
             task.cancel()
             await task
+
+    def _get_task_state(self, task):
+        if task.cancelled():
+            return 'cancelled'
+        if task.done():
+            return 'done'
+        return 'active'
+
+    async def on_ping(self, request):
+        workers = {
+            task.get_name(): self._get_task_state(task) for task in self._background_tasks
+        }
+
+        if any(map(lambda x: x.cancelled(), self._background_tasks)):
+            return self.error_response(
+                status=502,
+                message='Background workers canceled',
+                workers=workers,
+            )
+
+        return self.success_response(
+            workers=workers,
+        )
 
     async def on_index(self, request):
         return self.success_response(

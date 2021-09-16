@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import sys
 import uuid
 
 import tgproxy.providers as providers
@@ -16,7 +17,7 @@ def register_channel_type(type, class_):
 
 def build_channel(url, **kwargs):
     parsed_url, _ = utils.parse_url(url)
-    return CHANNELS_TYPES[parsed_url.scheme.lower()].from_url(url)
+    return CHANNELS_TYPES[parsed_url.scheme.lower()].from_url(url, **kwargs)
 
 
 class Message:
@@ -95,7 +96,6 @@ class TelegramChannel(BaseChannel):
         self._bot_token = bot_token
         self._bot_name = self._bot_token[:self._bot_token.find(":")]
         self._chat_id = chat_id
-
         self._provider = providers.TelegramChat(
             chat_id=self._chat_id,
             bot_token=self._bot_token,
@@ -106,17 +106,26 @@ class TelegramChannel(BaseChannel):
 
     async def process_queue(self):
         self._log.info('Start queue processor')
-        try:
-            while True:
-                message = await self.dequeue()
-                self._log.info(f'Send message: {repr(message)}')
-                await self._send_message(message)
-        except asyncio.CancelledError:
-            pass
-        self._log.info('Finish queue processor')
 
-    async def _send_message(self, message):
-        await self._provider.send_message(message)
+        async with self._provider.session() as provider:
+            try:
+                while True:
+                    message = await self.dequeue()
+                    self._log.info(f'Send message: {repr(message)}')
+                    await self._send_message(provider, message)
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                self._log.error(str(e), exc_info=sys.exc_info())
+                raise
+            finally:
+                self._log.info('Finish queue processor')
+
+    async def _send_message(self, provider, message):
+        try:
+            await provider.send_message(message)
+        except providers.errors.ProviderError as e:
+            self._log.fatal(f'Message: {str(e)} Error: {str(message)}')
 
 
 register_channel_type('telegram', TelegramChannel)

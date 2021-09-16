@@ -42,11 +42,12 @@ def main():
     logging.basicConfig(
         level=DEFAULT_LOGGING_MODE,
     )
-    tgproxy.APIApp(
+    app = tgproxy.APIApp(
         channels=build_channels_from_urls(args.channels_urls),
         host=args.host,
         port=args.port,
-    ).run()
+    )
+    app.run()
 
 
 if __name__ == '__main__':
