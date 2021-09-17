@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 
@@ -6,12 +5,12 @@ from aiohttp import web
 
 import tgproxy.errors as errors
 
+DEFAULT_LOGGER_NAME = 'tgproxy.app'
+
 
 class BaseApp:
-    def __init__(self, host, port):
-        self._log = logging.getLogger('tgproxy.app')
-        self._host = host
-        self._port = port
+    def __init__(self, logger_name=DEFAULT_LOGGER_NAME):
+        self._log = logging.getLogger(logger_name)
 
         self._app = web.Application(
             middlewares=[
@@ -22,12 +21,8 @@ class BaseApp:
             web.get('/ping.html', self.on_ping),
         ])
 
-    def run(self):
-        web.run_app(
-            self._app,
-            host=self._host,
-            port=self._port,
-        )
+    def serving_app(self):
+        return self._app
 
     def success_response(self, status=200, **kwargs):
         return web.json_response(
@@ -67,8 +62,8 @@ class BaseApp:
 
 
 class APIApp(BaseApp):
-    def __init__(self, channels, host='localhost', port='5000'):
-        super().__init__(host=host, port=port)
+    def __init__(self, channels):
+        super().__init__()
 
         self._channels = dict(channels)
         self._app.add_routes([
@@ -124,7 +119,7 @@ class APIApp(BaseApp):
             },
         )
 
-    def get_channel(self, request):
+    def _get_channel(self, request):
         channel_name = request.match_info['channel_name']
         channel = self._channels.get(channel_name)
         if not channel:
@@ -132,7 +127,7 @@ class APIApp(BaseApp):
         return channel
 
     async def on_channel(self, request):
-        channel = self.get_channel(request)
+        channel = self._get_channel(request)
         message = channel.request_to_message(
             await request.post(),
         )

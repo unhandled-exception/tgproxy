@@ -4,6 +4,7 @@ import logging
 import tgproxy.errors as errors
 
 DEFAULT_QUEUE_MAXSIZE = 1000
+DEFAULT_LOGGER_NAME = 'tgproxy.queue.memory'
 
 
 class BaseQueue:
@@ -18,9 +19,9 @@ class BaseQueue:
 
 
 class MemoryQueue(BaseQueue):
-    def __init__(self, maxsize=DEFAULT_QUEUE_MAXSIZE):
+    def __init__(self, maxsize=DEFAULT_QUEUE_MAXSIZE, logger_name=DEFAULT_LOGGER_NAME):
         self._queue = asyncio.Queue(maxsize)
-        self._log = logging.getLogger('tgproxy.queue.memory')
+        self._log = logging.getLogger(logger_name)
 
     async def enqueue(self, message):
         try:

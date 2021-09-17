@@ -8,6 +8,8 @@ import argparse
 import logging
 import sys
 
+import aiohttp
+
 import tgproxy
 
 DEFAULT_LOGGING_MODE = logging.INFO
@@ -43,11 +45,13 @@ def main():
         level=DEFAULT_LOGGING_MODE,
     )
     app = tgproxy.APIApp(
-        channels=build_channels_from_urls(args.channels_urls),
+        build_channels_from_urls(args.channels_urls),
+    )
+    aiohttp.web.run_app(
+        app.serving_app(),
         host=args.host,
         port=args.port,
     )
-    app.run()
 
 
 if __name__ == '__main__':

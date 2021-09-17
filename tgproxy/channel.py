@@ -8,6 +8,7 @@ import tgproxy.providers as providers
 import tgproxy.utils as utils
 from tgproxy.queue import MemoryQueue
 
+DEFAULT_LOGGER_NAME = 'tgproxy.channel'
 CHANNELS_TYPES = dict()
 
 
@@ -42,10 +43,10 @@ class BaseChannel:
     def from_url(cls, url, **kwargs):
         raise NotImplementedError()
 
-    def __init__(self, name, queue=None, **kwargs):
+    def __init__(self, name, queue=None, logger_name=DEFAULT_LOGGER_NAME, **kwargs):
         self.name = name
         self._queue = queue or MemoryQueue()
-        self._log = logging.getLogger(f'tgproxy.channel.{name}')
+        self._log = logging.getLogger(f'{logger_name}.{name}')
 
     async def enqueue(self, message):
         self._log.info(f'Enque message: {repr(message)}')
