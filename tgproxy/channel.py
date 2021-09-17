@@ -49,12 +49,12 @@ class BaseChannel:
         self._log = logging.getLogger(f'{logger_name}.{name}')
 
     async def enqueue(self, message):
-        self._log.info(f'Enque message: {repr(message)}')
+        self._log.info(f'Enque message: {message}')
         await self._queue.enqueue(message)
 
     async def dequeue(self):
         message = await self._queue.dequeue()
-        self._log.info(f'Deque message: {repr(message)}')
+        self._log.info(f'Deque message: {message}')
         return message
 
     def request_to_message(self, request):
@@ -112,8 +112,9 @@ class TelegramChannel(BaseChannel):
             try:
                 while True:
                     message = await self.dequeue()
-                    self._log.info(f'Send message: {repr(message)}')
+                    self._log.info(f'Send message: {message}')
                     await self._send_message(provider, message)
+                    self._log.info(f'Message sended: {message}')
             except asyncio.CancelledError:
                 pass
             except Exception as e:
@@ -126,7 +127,7 @@ class TelegramChannel(BaseChannel):
         try:
             await provider.send_message(message)
         except providers.errors.ProviderError as e:
-            self._log.fatal(f'Message: {str(e)} Error: {str(message)}')
+            self._log.error(f'Message: {e} Error: {message}')
 
 
 register_channel_type('telegram', TelegramChannel)

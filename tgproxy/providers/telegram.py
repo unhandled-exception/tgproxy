@@ -2,14 +2,16 @@ import contextlib
 import logging
 
 import aiohttp
+import tenacity
 
 from .errors import ProviderFatalError, ProviderTemporaryError
 
 TELEGRAM_API_URL = 'https://api.telegram.org'
+DEFAULT_LOGGER_NAME = 'tgproxy.providers.telegram'
 
 
 class TelegramChat:
-    def __init__(self, chat_id, bot_token, api_url=TELEGRAM_API_URL, timeout=5):
+    def __init__(self, chat_id, bot_token, api_url=TELEGRAM_API_URL, timeout=5, logger_name=DEFAULT_LOGGER_NAME):
         self.chat_id = chat_id
         self._bot_token = bot_token
         self._bot_name = self._bot_token[:self._bot_token.find(":")]
@@ -18,13 +20,20 @@ class TelegramChat:
         self._bot_url = f'{self._api_url.rstrip("/")}/bot{self._bot_token}'
         self._timeout = timeout
 
-        self._log = logging.getLogger(f'tgproxy.providers.telegram.bot{self._bot_name}.{self.chat_id}')
+        self._log = logging.getLogger(f'{logger_name}.bot{self._bot_name}.{self.chat_id}')
 
         self._http_timeout = aiohttp.ClientTimeout(total=timeout)
         self._http_client = None
 
+        self._retries_options = dict(
+            stop=tenacity.stop_after_attempt(3),
+            wait=tenacity.wait_random_exponential(multiplier=1, max=10),
+            retry=tenacity.retry_if_exception_type(ProviderTemporaryError),
+            after=tenacity.after_log(self._log, logging.INFO),
+        )
+
     async def send_message(self, message):
-        self._log.info(f'Send message {repr(message)}')
+        self._log.info(f'Send message {message}')
         await self._request(
             'sendMessage',
             request_data=dict(
@@ -44,18 +53,29 @@ class TelegramChat:
         if not self._http_client:
             raise RuntimeError('Call requests with in session context manager')
 
-        try:
-            resp = await self._http_client.post(
-                f'{self._bot_url}/{method}',
-                data=dict(
-                    chat_id=self.chat_id,
-                    **request_data
-                ),
-                timeout=self._http_timeout,
-            )
+        @tenacity.retry(
+            reraise=True,
+            **self._retries_options
+        )
+        async def _call_request_with_retries():
+            try:
+                resp = await self._http_client.post(
+                    f'{self._bot_url}/{method}',
+                    data=dict(
+                        chat_id=self.chat_id,
+                        **request_data
+                    ),
+                    timeout=self._http_timeout,
+                    allow_redirects=False,
+                )
+            except (aiohttp.ClientConnectionError, aiohttp.ClientResponseError) as e:
+                raise ProviderTemporaryError(str(e))
+            except Exception as e:
+                raise ProviderFatalError(str(e))
+
             return await self._process_response(resp)
-        except Exception as e:
-            raise ProviderFatalError(str(e))
+
+        return await _call_request_with_retries()
 
     async def _process_response(self, response):
         if response.ok:

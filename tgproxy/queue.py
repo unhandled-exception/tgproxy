@@ -26,7 +26,7 @@ class MemoryQueue(BaseQueue):
     async def enqueue(self, message):
         try:
             # Кладем очередь без блокировок на ожидании особождения места в очереди
-            self._log.info(f'Enque message {repr(message)}')
+            self._log.info(f'Enque message {message}')
             self._queue.put_nowait(message)
         except asyncio.QueueFull:
             raise errors.QueueFull('Queue is full. Max size is {self.maxsize}')
