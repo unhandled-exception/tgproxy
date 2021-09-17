@@ -68,12 +68,11 @@ class TelegramChat:
                     timeout=self._http_timeout,
                     allow_redirects=False,
                 )
+                return await self._process_response(resp)
             except (aiohttp.ClientConnectionError, aiohttp.ClientResponseError) as e:
                 raise ProviderTemporaryError(str(e))
             except Exception as e:
                 raise ProviderFatalError(str(e))
-
-            return await self._process_response(resp)
 
         return await _call_request_with_retries()
 
@@ -81,7 +80,13 @@ class TelegramChat:
         if response.ok:
             return (response.status, await response.json())
 
-        if response.status in [404, 400]:
-            raise ProviderFatalError(f'Status: {response.status}. Body: {await response.text()}')
+        resp_text = ''
+        try:
+            resp_text = await response.text()
+        except aiohttp.ClientConnectionError:
+            pass
 
-        raise ProviderTemporaryError(f'Status: {response.status}. Body: {await response.text()}')
+        if response.status in [404, 400]:
+            raise ProviderFatalError(f'Status: {response.status}. Body: {resp_text}')
+
+        raise ProviderTemporaryError(f'Status: {response.status}. Body: {resp_text}')

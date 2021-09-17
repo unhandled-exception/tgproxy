@@ -92,15 +92,18 @@ class TelegramChannel(BaseChannel):
             **kwargs
         )
 
-    def __init__(self, name, bot_token, chat_id, queue=None, **kwargs):
+    def __init__(self, name, bot_token, chat_id, queue=None, provider=None, **kwargs):
         super().__init__(name, queue)
         self._bot_token = bot_token
         self._bot_name = self._bot_token[:self._bot_token.find(":")]
         self._chat_id = chat_id
-        self._provider = providers.TelegramChat(
-            chat_id=self._chat_id,
-            bot_token=self._bot_token,
-        )
+
+        self._provider = provider
+        if not self._provider:
+            self._provider = providers.TelegramChat(
+                chat_id=self._chat_id,
+                bot_token=self._bot_token,
+            )
 
     def __str__(self):
         return f'telegram://{self._bot_name}:***@{self._chat_id}/{self.name}'

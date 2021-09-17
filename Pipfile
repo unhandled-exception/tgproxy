@@ -8,6 +8,8 @@ aiohttp = "*"
 tenacity = "*"
 
 [dev-packages]
+pytest = "*"
+aioresponses = "*"
 
 [requires]
 python_version = "3.9"
