@@ -11,3 +11,6 @@ tenacity = "*"
 pytest = "*"
 aioresponses = "*"
 pytest-aiohttp = "*"
+
+[requires]
+python_version = "3.8"
