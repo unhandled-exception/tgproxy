@@ -96,12 +96,15 @@ class APIApp(BaseApp):
             return 'done'
         return 'active'
 
+    def _has_failed_workers(self):
+        return any(map(lambda x: x.cancelled() or x.done(), self._background_tasks))
+
     async def on_ping(self, request):
         workers = {
             task.get_name(): self._get_task_state(task) for task in self._background_tasks
         }
 
-        if any(map(lambda x: x.cancelled(), self._background_tasks)):
+        if self._has_failed_workers():
             return self.error_response(
                 status=502,
                 message='Background workers canceled',

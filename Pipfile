@@ -10,6 +10,7 @@ tenacity = "*"
 [dev-packages]
 pytest = "*"
 aioresponses = "*"
+pytest-aiohttp = "*"
 
 [requires]
 python_version = "3.9"
