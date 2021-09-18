@@ -20,7 +20,6 @@ jobs:
                     python -m pip install --upgrade pip
                     pip install pipenv
                     pipenv sync
-                    pipenv shell
             - name: Test with pytest
               run: |
-                make test
+                pipenv run make test
