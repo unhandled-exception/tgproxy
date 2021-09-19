@@ -181,7 +181,7 @@ async def test_no_reties_on_fatal_error(cli):
         assert cli.server.app['api'].channels['main'].qsize() == 0
 
 
-async def test_reties_on_temporary_error(cli, caplog):
+async def test_reties_on_temporary_error(cli):
     with aioresponses(passthrough=['http://127.0.0.1']) as m:
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=500, exception=aiohttp.ClientConnectionError())
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=500, payload=dict(message='bad response'))
