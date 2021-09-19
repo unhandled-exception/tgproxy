@@ -33,6 +33,7 @@ class Args(argparse.ArgumentParser):
         self.add_argument('channels_urls', nargs='+', help='List of channels uri. Formatting: telegram://bot:token@chat_id/channel_name?option=value')
         self.add_argument('-H', '--host', dest='host', default='localhost', help='Server hostname')
         self.add_argument('-P', '--port', dest='port', default='5000', help='Server port')
+        self.add_argument('-d', '--debug', dest='debug', action='store_true', help='Debug mode')
 
     def error(self, message, exit_code=2):
         print(f'error: {message}\n', file=sys.stderr)
@@ -51,7 +52,7 @@ def build_channels_from_urls(urls):
 def main():
     args = Args().parse_args()
     logging.basicConfig(
-        level=DEFAULT_LOGGING_MODE,
+        level=logging.DEBUG if args.debug else DEFAULT_LOGGING_MODE,
     )
     app = tgproxy.APIApp(
         build_channels_from_urls(args.channels_urls),
