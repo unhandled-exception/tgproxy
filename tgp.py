@@ -2,6 +2,15 @@
 
 """
 A simple Telegram proxy
+
+Start server:
+pipenv run tgp.py telegram://bot:tok1@123/chat_1 telegram://bot:tok1@123/chat_2
+
+API:
+Get ping-status — GET http://localhost:5000/ping.html
+Get channels list — GET http://localhost:5000/
+Send messge POST http://localhost:5000/chat_1 (text="Message", parse_mode ...)
+Get channel statistics GET http://localhost:5000/chat_1
 """
 
 import argparse
@@ -51,6 +60,7 @@ def main():
         app.serving_app(),
         host=args.host,
         port=args.port,
+        reuse_port=True,
     )
 
 

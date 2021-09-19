@@ -68,7 +68,8 @@ class APIApp(BaseApp):
         self.channels = dict(channels)
         self._app.add_routes([
             web.get('/', self.on_index),
-            web.post('/{channel_name}', self.on_channel),
+            web.get('/{channel_name}', self.on_channel_stat),
+            web.post('/{channel_name}', self.on_channel_send),
         ])
         self._app.on_startup.append(self.start_background_channels_tasks)
         self._app.on_shutdown.append(self.stop_background_channels_tasks)
@@ -129,7 +130,7 @@ class APIApp(BaseApp):
             raise errors.ChannelNotFound(f'Channel "{channel_name}" not found')
         return channel
 
-    async def on_channel(self, request):
+    async def on_channel_send(self, request):
         channel = self._get_channel(request)
         message = channel.request_to_message(
             await request.post(),
@@ -138,4 +139,10 @@ class APIApp(BaseApp):
         return self.success_response(
             status=201,
             request_id=message.request_id,
+        )
+
+    async def on_channel_stat(self, request):
+        channel = self._get_channel(request)
+        return self.success_response(
+            **channel.get_stat(),
         )

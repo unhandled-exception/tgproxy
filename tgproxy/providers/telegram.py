@@ -86,7 +86,7 @@ class TelegramChat:
         if response.ok:
             return (response.status, await response.json())
 
-        resp_text = ''
+        resp_text = '<NO BODY>'
         try:
             resp_text = await response.text()
         except aiohttp.ClientConnectionError:

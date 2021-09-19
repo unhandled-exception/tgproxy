@@ -4,6 +4,9 @@ run:
 	@pipenv run ./tgp.py ${TGPROXY_DEFAULT_CHANNEL}
 
 test:
+	@pipenv run pytest -vv --disable-warnings
+
+test-log:
 	@pipenv run pytest -vv --disable-warnings --log-level=INFO
 
 cov:

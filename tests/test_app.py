@@ -36,6 +36,10 @@ def assert_telegram_call(
     assert tc[1][0].kwargs['data'] == data
 
 
+def assert_telegram_requests_count(m, count):
+    assert len(list(m.requests.items())[0][1]) == count
+
+
 @pytest.fixture
 def cli(loop, aiohttp_client):
     tgproxy.queue.DEFAULT_QUEUE_MAXSIZE = TEST_QUEUE_SIZE
@@ -131,7 +135,7 @@ async def test_channel_isfull(cli):
     assert resp.status == 503
 
 
-async def test_full_flow(cli):
+async def test_successful_send_message(cli):
     with aioresponses(passthrough=['http://127.0.0.1']) as m:
         m.post(
             re.compile(r'^https://api.telegram.org/bot'),
@@ -151,10 +155,9 @@ async def test_full_flow(cli):
             'status': 'success',
         }
 
-        requests = list(m.requests.items())
-        assert len(requests) == 1
+        assert_telegram_requests_count(m, 1)
         assert_telegram_call(
-            requests[0],
+            list(m.requests.items())[0],
             data={
                 'parse_mode': 'MarkdownV2',
                 'text': 'Test message',
@@ -162,10 +165,17 @@ async def test_full_flow(cli):
         )
 
         assert cli.server.app['api'].channels['main'].qsize() == 0
+        assert cli.server.app['api'].channels['main'].get_stat() == {
+            'errors': 0,
+            'last_error': None,
+            'queued': 1,
+            'sended': 1,
+        }
 
 
 async def test_no_reties_on_fatal_error(cli):
     with aioresponses(passthrough=['http://127.0.0.1']) as m:
+        m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, payload=dict())
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, payload=dict())
 
         resp = await cli.post(
@@ -177,8 +187,14 @@ async def test_no_reties_on_fatal_error(cli):
         )
         assert resp.ok
 
-        assert len(m.requests) == 1
+        assert_telegram_requests_count(m, 1)
         assert cli.server.app['api'].channels['main'].qsize() == 0
+        assert cli.server.app['api'].channels['main'].get_stat() == {
+            'errors': 1,
+            'last_error': 'Status: 400. Body: <NO BODY>',
+            'queued': 1,
+            'sended': 0,
+        }
 
 
 async def test_reties_on_temporary_error(cli):
@@ -198,5 +214,33 @@ async def test_reties_on_temporary_error(cli):
         assert resp.ok
 
         await asyncio.sleep(1)
-        requests = list(m.requests.items())[0]
-        assert len(requests[1]) == 3
+        assert_telegram_requests_count(m, 3)
+        assert cli.server.app['api'].channels['main'].get_stat() == {
+            'errors': 0,
+            'last_error': None,
+            'queued': 1,
+            'sended': 1,
+        }
+
+
+async def test_channel_statistics(cli):
+    with aioresponses(passthrough=['http://127.0.0.1']) as m:
+        m.post(re.compile(r'^https://api.telegram.org/bot'), status=200)
+        m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, body='bad request')
+        m.post(re.compile(r'^https://api.telegram.org/bot'), status=200)
+
+        await cli.post('/main', data=dict(text='Test message'))
+        await cli.post('/main', data=dict(text='Test message'))
+        await cli.post('/main', data=dict(text='Test message'))
+
+        resp = await cli.get('/main')
+
+        await asyncio.sleep(1)
+        assert await resp.json() == {
+            'errors': 1,
+            'last_error': 'Status: 400. Body: <NO BODY>',
+            'queued': 3,
+            'sended': 2,
+            'status': 'success',
+        }
+        assert resp.ok
