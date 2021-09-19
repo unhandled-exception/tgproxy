@@ -40,7 +40,7 @@ class BaseChannel:
     }
 
     @classmethod
-    def from_url(cls, url, **kwargs):
+    def from_url(cls, url, **kwargs):  # pragma: no cover
         raise NotImplementedError()
 
     def __init__(self, name, queue=None, logger_name=DEFAULT_LOGGER_NAME, **kwargs):
@@ -70,7 +70,7 @@ class BaseChannel:
         )
         return message
 
-    async def process_queue(self):
+    async def process_queue(self):  # pragma: no cover
         raise NotImplementedError()
 
 

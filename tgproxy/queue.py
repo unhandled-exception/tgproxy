@@ -7,7 +7,7 @@ DEFAULT_LOGGER_NAME = 'tgproxy.queue.memory'
 DEFAULT_QUEUE_MAXSIZE = 10000
 
 
-class BaseQueue:
+class BaseQueue:  # pragma: no cover
     def qsize(self):
         raise NotImplementedError()
 
@@ -42,10 +42,3 @@ class MemoryQueue(BaseQueue):
         message = await self._queue.get()
         self._queue.task_done()
         return message
-
-    async def regain(self, message):
-        # Восстанавливаем сообщение в очереди
-        # TODO: нужна вторая очередь. Если заполнена основная, то класть в резервную.
-        # и пытаться брать задачу в dequeue сначала из резервной, а потом из основной
-        # Но этого пока не требуется совсем, потому что мы можем терять месаги
-        raise NotImplementedError()
