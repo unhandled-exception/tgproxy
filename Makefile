@@ -10,9 +10,7 @@ test-log:
 	@pipenv run pytest -vv --disable-warnings --log-level=INFO
 
 cov:
-	@pipenv run coverage run -m pytest -vv --disable-warnings
-	@pipenv run coverage report --include=tgproxy/*
-	@pipenv run coverage html --include=tgproxy/* -d coverage_report/
+	@pipenv run pytest -vv --disable-warnings --cov=tgproxy --cov-append --cov-report html:coverage_report --cov-report term
 
 env:
 	@pipenv shell

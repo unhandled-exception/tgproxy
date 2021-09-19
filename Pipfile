@@ -11,8 +11,8 @@ tenacity = "*"
 pytest = "*"
 aioresponses = "*"
 pytest-aiohttp = "*"
-autopep8 = "*"
 coverage = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.9"

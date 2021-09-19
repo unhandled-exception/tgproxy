@@ -25,4 +25,4 @@ jobs:
                     flake8 . --count --show-source --statistics
             - name: Test with pytest
               run: |
-                    pytest -vv --disable-warnings
+                    pytest -vv --disable-warnings --cov=tgproxy --cov-report term
