@@ -9,6 +9,11 @@ from .errors import ProviderFatalError, ProviderTemporaryError
 TELEGRAM_API_URL = 'https://api.telegram.org'
 DEFAULT_LOGGER_NAME = 'tgproxy.providers.telegram'
 
+DEFAULT_RETRIES_OPTIONS = dict(
+    stop=tenacity.stop_after_attempt(3),
+    wait=tenacity.wait_random_exponential(multiplier=1, max=10),
+)
+
 
 class TelegramChat:
     def __init__(self, chat_id, bot_token, api_url=TELEGRAM_API_URL, timeout=5, logger_name=DEFAULT_LOGGER_NAME):
@@ -26,8 +31,7 @@ class TelegramChat:
         self._http_client = None
 
         self._retries_options = dict(
-            stop=tenacity.stop_after_attempt(3),
-            wait=tenacity.wait_random_exponential(multiplier=1, max=10),
+            **DEFAULT_RETRIES_OPTIONS,
             retry=tenacity.retry_if_exception_type(ProviderTemporaryError),
             after=tenacity.after_log(self._log, logging.INFO),
         )
@@ -71,6 +75,8 @@ class TelegramChat:
                 return await self._process_response(resp)
             except (aiohttp.ClientConnectionError, aiohttp.ClientResponseError) as e:
                 raise ProviderTemporaryError(str(e))
+            except ProviderTemporaryError:
+                raise
             except Exception as e:
                 raise ProviderFatalError(str(e))
 

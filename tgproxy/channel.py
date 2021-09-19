@@ -48,6 +48,9 @@ class BaseChannel:
         self._queue = queue or MemoryQueue()
         self._log = logging.getLogger(f'{logger_name}.{name}')
 
+    def qsize(self):
+        return self._queue.qsize()
+
     async def enqueue(self, message):
         self._log.info(f'Enque message: {message}')
         await self._queue.enqueue(message)

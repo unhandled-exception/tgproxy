@@ -65,7 +65,7 @@ class APIApp(BaseApp):
     def __init__(self, channels):
         super().__init__()
 
-        self._channels = dict(channels)
+        self.channels = dict(channels)
         self._app.add_routes([
             web.get('/', self.on_index),
             web.post('/{channel_name}', self.on_channel),
@@ -73,11 +73,11 @@ class APIApp(BaseApp):
         self._app.on_startup.append(self.start_background_channels_tasks)
         self._app.on_shutdown.append(self.stop_background_channels_tasks)
 
-        self._background_tasks = list()
+        self.background_tasks = list()
 
     async def start_background_channels_tasks(self, app):
-        for ch in self._channels.values():
-            self._background_tasks.append(
+        for ch in self.channels.values():
+            self.background_tasks.append(
                 asyncio.create_task(
                     ch.process_queue(),
                     name=ch,
@@ -85,7 +85,7 @@ class APIApp(BaseApp):
             )
 
     async def stop_background_channels_tasks(self, app):
-        for task in self._background_tasks:
+        for task in self.background_tasks:
             task.cancel()
             await task
 
@@ -97,11 +97,11 @@ class APIApp(BaseApp):
         return 'active'
 
     def _has_failed_workers(self):
-        return any(map(lambda x: x.cancelled() or x.done(), self._background_tasks))
+        return any(map(lambda x: x.cancelled() or x.done(), self.background_tasks))
 
     async def on_ping(self, request):
         workers = {
-            task.get_name(): self._get_task_state(task) for task in self._background_tasks
+            task.get_name(): self._get_task_state(task) for task in self.background_tasks
         }
 
         if self._has_failed_workers():
@@ -118,13 +118,13 @@ class APIApp(BaseApp):
     async def on_index(self, request):
         return self.success_response(
             channels={
-                name: str(ch) for name, ch in self._channels.items()
+                name: str(ch) for name, ch in self.channels.items()
             },
         )
 
     def _get_channel(self, request):
         channel_name = request.match_info['channel_name']
-        channel = self._channels.get(channel_name)
+        channel = self.channels.get(channel_name)
         if not channel:
             raise errors.ChannelNotFound(f'Channel "{channel_name}" not found')
         return channel
