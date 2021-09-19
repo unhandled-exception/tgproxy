@@ -1,16 +1,19 @@
 all: test
 
-test:
+test: sync
 	@pipenv run pytest -vv --disable-warnings
 
-test-log:
+test-log: sync
 	@pipenv run pytest -vv --disable-warnings --log-level=INFO
 
-cov:
+cov: sync
 	@pipenv run pytest -vv --disable-warnings --cov=tgproxy --cov-append --cov-report html:coverage_report --cov-report term
 
 env:
 	@pipenv shell
+
+sync:
+	@pipenv sync -d
 
 lock:
 	@pipenv lock
