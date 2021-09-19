@@ -60,7 +60,6 @@ def main():
         app.serving_app(),
         host=args.host,
         port=args.port,
-        reuse_port=True,
     )
 
 

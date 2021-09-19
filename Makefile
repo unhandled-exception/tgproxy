@@ -1,8 +1,5 @@
 all: test
 
-run:
-	@pipenv run ./tgp.py ${TGPROXY_DEFAULT_CHANNEL}
-
 test:
 	@pipenv run pytest -vv --disable-warnings
 
