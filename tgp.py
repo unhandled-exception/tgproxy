@@ -53,6 +53,7 @@ def main():
     args = Args().parse_args()
     logging.basicConfig(
         level=logging.DEBUG if args.debug else DEFAULT_LOGGING_MODE,
+        format='%(asctime)s:%(name)s:%(levelname)s:%(message)s',
     )
     app = tgproxy.APIApp(
         build_channels_from_urls(args.channels_urls),
