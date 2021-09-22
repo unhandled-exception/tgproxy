@@ -95,7 +95,7 @@ async def test_ping_fail(cli):
 async def test_start_background_tasks(cli):
     bt = cli.server.app['api'].background_tasks
     assert len(bt) == 2
-    assert [(t.get_name(), (not t.cancelled() and not t.done())) for t in bt]
+    assert all([(not t.cancelled() and not t.done()) for t in bt])
 
 
 async def test_on_index_ok(cli):
@@ -116,7 +116,7 @@ async def test_channel_not_found(cli):
         'message': 'Channel "not_found" not found',
         'status': 'error',
     }
-    assert not resp.ok
+    assert resp.status == 404
 
 
 async def test_channel_isfull(cli):

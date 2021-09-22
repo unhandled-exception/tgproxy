@@ -29,7 +29,7 @@ class Message:
 
     @functools.cache
     def __repr__(self):
-        return f'Message(text="{self.text}, request_id={self.request_id}", options={self.options})'
+        return f'Message(text="{self.text}", request_id="{self.request_id}", options={self.options})'
 
 
 class BaseChannel:
