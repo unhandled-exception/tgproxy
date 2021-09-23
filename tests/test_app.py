@@ -15,6 +15,7 @@ TEST_CHANNELS = {
     'telegram://bot2:token2@chat_2/second',
 }
 TEST_QUEUE_SIZE = 5
+TEST_PASSTHROUGH_SERVERS = ['http://127.0.0.1', 'http://127.0.1.1']
 
 
 def assert_telegram_call(
@@ -136,7 +137,7 @@ async def test_channel_isfull(cli):
 
 
 async def test_successful_send_message(cli):
-    with aioresponses(passthrough=['http://127.0.0.1']) as m:
+    with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(
             re.compile(r'^https://api.telegram.org/bot'),
             status=200,
@@ -174,7 +175,7 @@ async def test_successful_send_message(cli):
 
 
 async def test_no_reties_on_fatal_error(cli):
-    with aioresponses(passthrough=['http://127.0.0.1']) as m:
+    with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, payload=dict())
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, payload=dict())
 
@@ -198,7 +199,7 @@ async def test_no_reties_on_fatal_error(cli):
 
 
 async def test_reties_on_temporary_error(cli):
-    with aioresponses(passthrough=['http://127.0.0.1']) as m:
+    with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=500, exception=aiohttp.ClientConnectionError())
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=500, payload=dict(message='bad response'))
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=200, payload=dict(message='sended'))
@@ -224,7 +225,7 @@ async def test_reties_on_temporary_error(cli):
 
 
 async def test_channel_statistics(cli):
-    with aioresponses(passthrough=['http://127.0.0.1']) as m:
+    with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=200)
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, body='bad request')
         m.post(re.compile(r'^https://api.telegram.org/bot'), status=200)
