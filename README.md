@@ -6,29 +6,20 @@
 
 Формат url канала:
 ```
-telegram://bot:token@chat_id/channel_name?timeout=1&retries=5
+telegram://bot:token@chat_id/channel_name?timeout=3
 ```
 
-Timeout и retries — необязательные настраиваемые параметры канала.
+Timeout — необязательный настраиваемый параметр.
 
-### План разработки
+## Запустить сервер
 
-- [x] Сделать тестового бота и группу в Телеграме
-- [x] Собрать venv и инициализировать гит-репозиторий
-- [x] Настроить прекомитные хуки на базе https://pre-commit.com/
-- [x] Разбираем параметры командной строки через argparse
-- Приложение с минимальными обработчиками
-  - [x] BaseApp с оберткой вокруг aiohttp.web.Appication
-  - [x] Ручка /ping.html
-  - [x] Методы success_response и errror_response
-  - [x] Логирование
-- [x] Строим список каналов по url фабричной фунцией
-- [x] Принимаем сообщения и отправляем в канал. Базово хотим только message, но принимаем и другие параметры из запроса для телеги.
-- [x] Ограничить размер очереди
-- [x] Принимать и протягивать до логов заголовок X-Request-Id? [Принимаем парметр request_id из запроса]
-- [x] Запускаем пустой асинхронный обработчик сообщений в канале
-- [x] Отправляем сообщениев телегу через https://docs.aiogram.dev/en/latest/telegram/index.html или aoihttp.Session
-- [x] Корректно запускать и осоождать асинхронный http-клиент
-- [x] Добавляем ретраи при отправке. В очередь не возвращаем, на фатальных ошибках не продолжаем ретраить. Ошибки пишем в лог
-- [x] Зафризить зависимости
-- [ ] Написать базовые тесты (посомтреть как мокируют клиента d ntcnf)
+`pipenv run tgp.py telegram://bot:tok1@123/chat_1 telegram://bot:tok1@123/chat_2`
+
+## API
+
+```
+Get ping-status — GET http://localhost:5000/ping.html
+Get channels list — GET http://localhost:5000/
+Send messge POST http://localhost:5000/chat_1 (text="Message", parse_mode ...)
+Get channel statistics GET http://localhost:5000/chat_1
+```

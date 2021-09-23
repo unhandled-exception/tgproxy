@@ -17,8 +17,12 @@ def register_channel_type(type, class_):
 
 
 def build_channel(url, **kwargs):
-    parsed_url, _ = utils.parse_url(url)
-    return CHANNELS_TYPES[parsed_url.scheme.lower()].from_url(url, **kwargs)
+    parsed_url, channel_options = utils.parse_url(url)
+    return CHANNELS_TYPES[parsed_url.scheme.lower()].from_url(
+        url,
+        channel_options=channel_options,
+        **kwargs,
+    )
 
 
 class Message:
@@ -43,7 +47,7 @@ class BaseChannel:
     def from_url(cls, url, **kwargs):  # pragma: no cover
         raise NotImplementedError()
 
-    def __init__(self, name, queue=None, logger_name=DEFAULT_LOGGER_NAME, **kwargs):
+    def __init__(self, name, queue=None, logger_name=DEFAULT_LOGGER_NAME, channel_options=None, **kwargs):
         self.name = name
         self._queue = queue or MemoryQueue()
         self._log = logging.getLogger(f'{logger_name}.{name}')
@@ -105,17 +109,18 @@ class TelegramChannel(BaseChannel):
             **kwargs
         )
 
-    def __init__(self, name, bot_token, chat_id, queue=None, provider=None, **kwargs):
+    def __init__(self, name, bot_token, chat_id, queue=None, provider=None, channel_options=None, **kwargs):
         super().__init__(name, queue)
         self._bot_token = bot_token
         self._bot_name = self._bot_token[:self._bot_token.find(":")]
         self._chat_id = chat_id
 
-        self._provider = provider
-        if not self._provider:
-            self._provider = providers.TelegramChat(
+        self.provider = provider
+        if not self.provider:
+            self.provider = providers.TelegramChat(
                 chat_id=self._chat_id,
                 bot_token=self._bot_token,
+                **(channel_options if channel_options else dict()),
             )
 
     def __str__(self):
@@ -124,7 +129,7 @@ class TelegramChannel(BaseChannel):
     async def process_queue(self):
         self._log.info('Start queue processor')
 
-        async with self._provider.session() as provider:
+        async with self.provider.session() as provider:
             try:
                 while True:
                     message = await self.dequeue()

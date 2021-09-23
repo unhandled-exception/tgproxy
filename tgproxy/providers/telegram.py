@@ -10,24 +10,28 @@ TELEGRAM_API_URL = 'https://api.telegram.org'
 DEFAULT_LOGGER_NAME = 'tgproxy.providers.telegram'
 
 DEFAULT_RETRIES_OPTIONS = dict(
-    stop=tenacity.stop_after_attempt(3),
-    wait=tenacity.wait_random_exponential(multiplier=1, max=10),
+    stop=tenacity.stop_after_attempt(5),
+    wait=tenacity.wait_random_exponential(
+        multiplier=1,
+        min=2,
+        max=32,
+    ),
 )
 
 
 class TelegramChat:
-    def __init__(self, chat_id, bot_token, api_url=TELEGRAM_API_URL, timeout=5, logger_name=DEFAULT_LOGGER_NAME):
+    def __init__(self, chat_id, bot_token, api_url=TELEGRAM_API_URL, timeout=5, logger_name=DEFAULT_LOGGER_NAME, **kwargs):
         self.chat_id = chat_id
-        self._bot_token = bot_token
-        self._bot_name = self._bot_token[:self._bot_token.find(":")]
+        self.bot_token = bot_token
+        self.bot_name = self.bot_token[:self.bot_token.find(":")]
 
-        self._api_url = api_url
-        self._bot_url = f'{self._api_url.rstrip("/")}/bot{self._bot_token}'
-        self._timeout = timeout
+        self.api_url = api_url
+        self.bot_url = f'{self.api_url.rstrip("/")}/bot{self.bot_token}'
+        self.timeout = timeout
 
-        self._log = logging.getLogger(f'{logger_name}.bot{self._bot_name}.{self.chat_id}')
+        self._log = logging.getLogger(f'{logger_name}.bot{self.bot_name}.{self.chat_id}')
 
-        self._http_timeout = aiohttp.ClientTimeout(total=timeout)
+        self.http_timeout = aiohttp.ClientTimeout(total=self.timeout)
         self._http_client = None
 
         self._retries_options = dict(
@@ -64,12 +68,12 @@ class TelegramChat:
         async def _call_request_with_retries():
             try:
                 resp = await self._http_client.post(
-                    f'{self._bot_url}/{method}',
+                    f'{self.bot_url}/{method}',
                     data=dict(
                         chat_id=self.chat_id,
                         **request_data
                     ),
-                    timeout=self._http_timeout,
+                    timeout=self.http_timeout,
                     allow_redirects=False,
                 )
                 return await self._process_response(resp)
