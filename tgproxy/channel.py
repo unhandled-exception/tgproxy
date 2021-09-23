@@ -136,12 +136,11 @@ class TelegramChannel(BaseChannel):
                     self._log.info(f'Send message: {message}')
                     await self._send_message(provider, message)
             except asyncio.CancelledError:
-                pass
+                self._log.info(f'Finish queue processor. Queue size: {self._queue.qsize()}')
             except Exception as e:
                 self._log.error(str(e), exc_info=sys.exc_info())
+                self._log.info(f'Failed queue processor. Queue size: {self._queue.qsize()}')
                 raise
-            finally:
-                self._log.info('Finish queue processor')
 
     async def _send_message(self, provider, message):
         try:
