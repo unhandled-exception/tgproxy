@@ -4,7 +4,7 @@
 A simple Telegram proxy
 
 Start server:
-pipenv run tgp.py telegram://bot:tok1@123/chat_1 telegram://bot:tok1@123/chat_2
+pipenv run tgp.py telegram://bot:tok1@123/chat_1 telegram://bot:tok1@123/chat_2?timeout=3
 
 API:
 Get ping-status — GET http://localhost:5000/ping.html

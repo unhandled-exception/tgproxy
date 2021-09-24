@@ -1,5 +1,6 @@
 import asyncio
 import re
+from unittest import mock
 
 import aiohttp
 import pytest
@@ -52,7 +53,7 @@ def cli(loop, aiohttp_client):
         channels=dict(
             map(
                 lambda x: (x.name, x),
-                [tgproxy.build_channel(url) for url in TEST_CHANNELS],
+                [tgproxy.build_channel(url, send_banner_on_startup=False) for url in TEST_CHANNELS],
             ),
         ),
     )
@@ -245,3 +246,19 @@ async def test_channel_statistics(cli):
             'status': 'success',
         }
         assert resp.ok
+
+
+@mock.patch('socket.gethostname', lambda: 'host.test.local')
+async def test_send_banner_on_startup(cli):
+    await cli.server.app['api'].stop_background_channels_tasks(cli.server.app)
+
+    with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
+        cli.server.app['api'].channels['main'].send_banner_on_startup = True
+        await cli.server.app['api'].start_background_channels_tasks(cli.server.app)
+        await asyncio.sleep(1)
+        assert_telegram_call(
+            list(m.requests.items())[0],
+            data={
+                'text': 'Start tgproxy on host.test.local',
+            },
+        )

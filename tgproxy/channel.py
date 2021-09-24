@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import socket
 import sys
 import uuid
 
@@ -109,7 +110,7 @@ class TelegramChannel(BaseChannel):
             **kwargs
         )
 
-    def __init__(self, name, bot_token, chat_id, queue=None, provider=None, channel_options=None, **kwargs):
+    def __init__(self, name, bot_token, chat_id, queue=None, provider=None, channel_options=None, send_banner_on_startup=True, **kwargs):
         super().__init__(name, queue)
         self._bot_token = bot_token
         self._bot_name = self._bot_token[:self._bot_token.find(":")]
@@ -123,6 +124,10 @@ class TelegramChannel(BaseChannel):
                 bot_token=self._bot_token,
                 **self.channel_options,
             )
+        self.send_banner_on_startup = bool(
+            int(self.channel_options['send_banner_on_startup']) if 'send_banner_on_startup' in self.channel_options else send_banner_on_startup,
+        )
+        self._log.info(f'self.send_banner_on_startup == {self.send_banner_on_startup}')
 
     def __str__(self):
         co = [f'{k}={v}' for k, v in self.channel_options.items()]
@@ -131,8 +136,15 @@ class TelegramChannel(BaseChannel):
             co = f'?{co}'
         return f'telegram://{self._bot_name}:***@{self._chat_id}/{self.name}{co}'
 
+    def _get_banner(self):
+        return self.request_to_message(
+            dict(text=f'Start tgproxy on {socket.gethostname()}'),
+        )
+
     async def process_queue(self):
-        self._log.info('Start queue processor')
+        self._log.info(f'Start queue processor for {self}')
+        if self.send_banner_on_startup:
+            await self.enqueue(self._get_banner())
 
         async with self.provider.session() as provider:
             try:

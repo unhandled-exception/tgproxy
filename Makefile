@@ -7,7 +7,7 @@ test-log: sync
 	@pipenv run pytest -vv --disable-warnings --log-level=INFO
 
 cov: sync
-	@pipenv run pytest -vv --disable-warnings --cov=tgproxy --cov-append --cov-report html:coverage_report --cov-report term
+	@pipenv run pytest -vv --disable-warnings --cov=tgproxy --cov-report html:coverage_report --cov-report term
 
 env:
 	@pipenv shell
