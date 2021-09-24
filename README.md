@@ -6,10 +6,11 @@
 
 Формат url канала:
 ```
-telegram://bot:token@chat_id/channel_name?timeout=3
-```
+telegram://bot:token@chat_id/channel_name?timeout=3&&send_banner_on_startup=0
 
-Timeout — необязательный настраиваемый параметр.
+timeout — необязательный настраиваемый параметр таймаута для АПИ телеграма
+send_banner_on_startup=0 — не отправлять в канал сообщение при старте обработчика очереди
+```
 
 ## Запустить сервер
 

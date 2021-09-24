@@ -2,7 +2,7 @@ import tgproxy
 
 
 def test_build_telegram_channel(loop):
-    channel = tgproxy.build_channel('telegram://bot2345:token12345@chat_1/channel_1?timeout=9999&param1=value1')
+    channel = tgproxy.build_channel('telegram://bot2345:token12345@chat_1/channel_1?timeout=9999&param1=value1', send_banner_on_startup=False)
     assert isinstance(channel, tgproxy.channel.TelegramChannel)
     assert channel.name == 'channel_1'
 
