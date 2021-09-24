@@ -10,4 +10,4 @@ def test_build_telegram_channel(loop):
     assert isinstance(provider, tgproxy.providers.TelegramChat)
     assert provider.chat_id == 'chat_1'
     assert provider.bot_token == 'bot2345:token12345'
-    assert provider.timeout == '9999'
+    assert provider.timeout == 9999

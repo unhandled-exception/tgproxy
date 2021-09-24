@@ -115,16 +115,21 @@ class TelegramChannel(BaseChannel):
         self._bot_name = self._bot_token[:self._bot_token.find(":")]
         self._chat_id = chat_id
 
+        self.channel_options = dict(channel_options)
         self.provider = provider
         if not self.provider:
             self.provider = providers.TelegramChat(
                 chat_id=self._chat_id,
                 bot_token=self._bot_token,
-                **(channel_options if channel_options else dict()),
+                **self.channel_options,
             )
 
     def __str__(self):
-        return f'telegram://{self._bot_name}:***@{self._chat_id}/{self.name}'
+        co = [f'{k}={v}' for k, v in self.channel_options.items()]
+        co = f'{"&".join(co)}'
+        if co:
+            co = f'?{co}'
+        return f'telegram://{self._bot_name}:***@{self._chat_id}/{self.name}{co}'
 
     async def process_queue(self):
         self._log.info('Start queue processor')

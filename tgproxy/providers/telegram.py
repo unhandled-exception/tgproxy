@@ -27,7 +27,7 @@ class TelegramChat:
 
         self.api_url = api_url
         self.bot_url = f'{self.api_url.rstrip("/")}/bot{self.bot_token}'
-        self.timeout = timeout
+        self.timeout = int(timeout)
 
         self._log = logging.getLogger(f'{logger_name}.bot{self.bot_name}.{self.chat_id}')
 

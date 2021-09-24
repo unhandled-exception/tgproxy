@@ -70,7 +70,7 @@ async def test_ping_ok(cli):
         'status': 'success',
         'workers': {
             'telegram://bot2:***@chat_2/second': 'active',
-            'telegram://bot:***@chat_1/main': 'active',
+            'telegram://bot:***@chat_1/main?timeout=100': 'active',
         },
     }
 
@@ -87,7 +87,7 @@ async def test_ping_fail(cli):
         'message': 'Background workers canceled',
         'workers': {
             'telegram://bot2:***@chat_2/second': 'done',
-            'telegram://bot:***@chat_1/main': 'done',
+            'telegram://bot:***@chat_1/main?timeout=100': 'done',
         },
     }
     assert not resp.ok
@@ -105,7 +105,7 @@ async def test_on_index_ok(cli):
     assert await resp.json() == {
         'status': 'success',
         'channels': {
-            'main': 'telegram://bot:***@chat_1/main',
+            'main': 'telegram://bot:***@chat_1/main?timeout=100',
             'second': 'telegram://bot2:***@chat_2/second',
         },
     }
