@@ -77,6 +77,7 @@ class APIApp(BaseApp):
         self.background_tasks = list()
 
     async def start_background_channels_tasks(self, app):
+        self._log.info('Start background tasks')
         for ch in self.channels.values():
             self.background_tasks.append(
                 asyncio.create_task(
@@ -86,6 +87,7 @@ class APIApp(BaseApp):
             )
 
     async def stop_background_channels_tasks(self, app):
+        self._log.info('Stop background tasks')
         for task in self.background_tasks:
             task.cancel()
             await task
@@ -100,20 +102,21 @@ class APIApp(BaseApp):
     def _has_failed_workers(self):
         return any(map(lambda x: x.cancelled() or x.done(), self.background_tasks))
 
-    async def on_ping(self, request):
-        workers = {
+    def workers(self):
+        return {
             task.get_name(): self._get_task_state(task) for task in self.background_tasks
         }
 
+    async def on_ping(self, request):
         if self._has_failed_workers():
             return self.error_response(
                 status=502,
                 message='Background workers canceled',
-                workers=workers,
+                workers=self.workers(),
             )
 
         return self.success_response(
-            workers=workers,
+            workers=self.workers(),
         )
 
     async def on_index(self, request):

@@ -27,3 +27,9 @@ act:
 #   https://github.com/nektos/act
 	@act -l
 	@act --rm -j tests
+
+pre-commit:
+	@pre-commit run -a
+
+pc-install:
+	@pre-commit install
