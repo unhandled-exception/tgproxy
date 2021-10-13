@@ -9,7 +9,7 @@ from aioresponses import aioresponses
 
 import tgproxy
 
-from . import AnyValue
+from . import AnyValue, NowTimeDeltaValue
 
 TEST_CHANNELS = {
     'telegram://bot:token@chat_1/main/?timeout=100',
@@ -167,9 +167,9 @@ async def test_successful_send_message(cli):
         assert cli.server.app.channels['main'].qsize() == 0
         assert cli.server.app.channels['main'].stat() == {
             'errors': 0,
-            'last_error': None,
             'queued': 1,
             'sended': 1,
+            'last_sended_at': NowTimeDeltaValue(),
         }
 
 
@@ -192,6 +192,7 @@ async def test_no_reties_on_fatal_error(cli):
         assert cli.server.app.channels['main'].stat() == {
             'errors': 1,
             'last_error': 'Status: 400. Body: <NO BODY>',
+            'last_error_at': NowTimeDeltaValue(),
             'queued': 1,
             'sended': 0,
         }
@@ -217,9 +218,9 @@ async def test_reties_on_temporary_error(cli):
         assert_telegram_requests_count(m, 3)
         assert cli.server.app.channels['main'].stat() == {
             'errors': 0,
-            'last_error': None,
             'queued': 1,
             'sended': 1,
+            'last_sended_at': NowTimeDeltaValue(),
         }
 
 
@@ -239,8 +240,10 @@ async def test_channel_statistics(cli):
         assert await resp.json() == {
             'errors': 1,
             'last_error': 'Status: 400. Body: <NO BODY>',
+            'last_error_at': NowTimeDeltaValue(),
             'queued': 3,
             'sended': 2,
+            'last_sended_at': NowTimeDeltaValue(),
             'status': 'success',
         }
         assert resp.ok
