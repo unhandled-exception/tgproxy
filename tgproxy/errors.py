@@ -1,3 +1,7 @@
+class UnknownChannelType(Exception):
+    pass
+
+
 class BaseError(Exception):
     http_status = 500
 
