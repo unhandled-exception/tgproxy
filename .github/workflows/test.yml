@@ -3,26 +3,30 @@ name: TGProxy CI
 on: [push]
 
 jobs:
-    tests:
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: ["3.9", "3.10"]
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10"]
 
-        steps:
-            - uses: actions/checkout@v2
-            - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python@v2
-              with:
-                    python-version: ${{ matrix.python-version }}
-            - name: Install dependencies
-              run: |
-                    python -m pip install --upgrade pip wheel
-                    pip install -r requirements-dev.txt
-            - name: Lint
-              run: |
-                    pip install flake8
-                    flake8 . --count --show-source --statistics
-            - name: Test with pytest
-              run: |
-                    pytest -vv --disable-warnings --cov=tgproxy --cov-report term
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python --version
+          python -m pip install --upgrade pip wheel
+          pip install -r requirements-dev.txt
+      - name: Lint
+        run: |
+          pip install flake8 isort mypy
+          echo "Run flake8"
+          flake8 . --count --show-source --statistics --max-complexity=10 --show-source
+          echo "Run isort checks"
+          isort **/*.py -c --diff
+      - name: Test with pytest
+        run: |
+          pytest -vv --disable-warnings --cov=tgproxy --cov-report term
