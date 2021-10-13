@@ -14,6 +14,7 @@ pytest-aiohttp = "*"
 pytest-cov = "*"
 install = "*"
 ipython = "*"
+pytest-randomly = "*"
 
 [requires]
 python_version = "3.9"
