@@ -8,16 +8,16 @@ import tgproxy.errors as errors
 DEFAULT_LOGGER_NAME = 'tgproxy.app'
 
 
-class BaseApp(web.Application):
+class BaseApp:
     def __init__(self, logger_name=DEFAULT_LOGGER_NAME):
-        super().__init__(
+        self.app = web.Application(
             middlewares=[
                self._error_middleware,
             ],
         )
         self._log = logging.getLogger(logger_name)
 
-        self.add_routes([
+        self.app.add_routes([
             web.get('/ping.html', self._on_ping),
         ])
 
@@ -58,18 +58,18 @@ class BaseApp(web.Application):
         )
 
 
-class APIApp(BaseApp):
+class HttpAPI(BaseApp):
     def __init__(self, channels):
         super().__init__()
 
         self.channels = dict(channels)
-        self.add_routes([
+        self.app.add_routes([
             web.get('/', self._on_index),
             web.get('/{channel_name}', self._on_channel_stat),
             web.post('/{channel_name}', self._on_channel_send),
         ])
-        self.on_startup.append(self.start_background_channels_tasks)
-        self.on_shutdown.append(self.stop_background_channels_tasks)
+        self.app.on_startup.append(self.start_background_channels_tasks)
+        self.app.on_shutdown.append(self.stop_background_channels_tasks)
 
         self.background_tasks = list()
 
