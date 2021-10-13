@@ -57,10 +57,8 @@ def cli(loop, aiohttp_client):
             ),
         ),
     )
-    serving_app = app.serving_app()
-    serving_app['api'] = app
     return loop.run_until_complete(
-        aiohttp_client(serving_app),
+        aiohttp_client(app),
     )
 
 
@@ -77,7 +75,7 @@ async def test_ping_ok(cli):
 
 
 async def test_ping_fail(cli):
-    api = cli.server.app['api']
+    api = cli.server.app
     await api.stop_background_channels_tasks(cli.server.app)
     assert len(api.background_tasks) == len(TEST_CHANNELS)
     assert len(list(filter(lambda x: x.cancelled(), api.background_tasks))) == 0
@@ -95,7 +93,7 @@ async def test_ping_fail(cli):
 
 
 async def test_start_background_tasks(cli):
-    bt = cli.server.app['api'].background_tasks
+    bt = cli.server.app.background_tasks
     assert len(bt) == 2
     assert all([(not t.cancelled() and not t.done()) for t in bt])
 
@@ -122,12 +120,12 @@ async def test_channel_not_found(cli):
 
 
 async def test_channel_isfull(cli):
-    await cli.server.app['api'].stop_background_channels_tasks(cli.server.app['api'])
+    await cli.server.app.stop_background_channels_tasks(cli.server.app)
     assert tgproxy.queue.DEFAULT_QUEUE_MAXSIZE == TEST_QUEUE_SIZE
 
     for _ in range(TEST_QUEUE_SIZE):
         await cli.post('/main', data={'text': 'Message'})
-    assert cli.server.app['api'].channels['main'].qsize() == TEST_QUEUE_SIZE
+    assert cli.server.app.channels['main'].qsize() == TEST_QUEUE_SIZE
 
     resp = await cli.post('/main', data={'text': 'Message'})
     assert await resp.json() == {
@@ -166,8 +164,8 @@ async def test_successful_send_message(cli):
             },
         )
 
-        assert cli.server.app['api'].channels['main'].qsize() == 0
-        assert cli.server.app['api'].channels['main'].get_stat() == {
+        assert cli.server.app.channels['main'].qsize() == 0
+        assert cli.server.app.channels['main'].stat() == {
             'errors': 0,
             'last_error': None,
             'queued': 1,
@@ -190,8 +188,8 @@ async def test_no_reties_on_fatal_error(cli):
         assert resp.ok
 
         assert_telegram_requests_count(m, 1)
-        assert cli.server.app['api'].channels['main'].qsize() == 0
-        assert cli.server.app['api'].channels['main'].get_stat() == {
+        assert cli.server.app.channels['main'].qsize() == 0
+        assert cli.server.app.channels['main'].stat() == {
             'errors': 1,
             'last_error': 'Status: 400. Body: <NO BODY>',
             'queued': 1,
@@ -217,7 +215,7 @@ async def test_reties_on_temporary_error(cli):
 
         await asyncio.sleep(1)
         assert_telegram_requests_count(m, 3)
-        assert cli.server.app['api'].channels['main'].get_stat() == {
+        assert cli.server.app.channels['main'].stat() == {
             'errors': 0,
             'last_error': None,
             'queued': 1,
@@ -250,11 +248,11 @@ async def test_channel_statistics(cli):
 
 @mock.patch('socket.gethostname', lambda: 'host.test.local')
 async def test_send_banner_on_startup(cli):
-    await cli.server.app['api'].stop_background_channels_tasks(cli.server.app)
+    await cli.server.app.stop_background_channels_tasks(cli.server.app)
 
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
-        cli.server.app['api'].channels['main'].send_banner_on_startup = True
-        await cli.server.app['api'].start_background_channels_tasks(cli.server.app)
+        cli.server.app.channels['main'].send_banner_on_startup = True
+        await cli.server.app.start_background_channels_tasks(cli.server.app)
         await asyncio.sleep(1)
         assert_telegram_call(
             list(m.requests.items())[0],
