@@ -96,7 +96,7 @@ class TelegramChannel(BaseChannel):
         'parse_mode': {},
         'disable_web_page_preview': {'default': 0},
         'disable_notifications': {'default': 0},
-        'repy_to_message_id': {},
+        'reply_to_message_id': {},
     }
 
     @classmethod
