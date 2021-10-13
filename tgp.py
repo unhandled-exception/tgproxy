@@ -55,11 +55,11 @@ def main():
         level=logging.DEBUG if args.debug else DEFAULT_LOGGING_MODE,
         format='%(asctime)s - %(levelname)s - %(name)s: %(message)s',
     )
-    app = tgproxy.APIApp(
+    api = tgproxy.HttpAPI(
         build_channels_from_urls(args.channels_urls),
     )
     aiohttp.web.run_app(
-        app,
+        api.app,
         host=args.host,
         port=args.port,
     )

@@ -35,4 +35,4 @@ jobs:
           isort . -c --diff
       - name: Test with pytest
         run: |
-          pytest -vv --disable-warnings --cov=tgproxy --cov-report term
+          pytest -vv --cov=tgproxy --cov-report term
