@@ -5,6 +5,7 @@ import socket
 import sys
 import uuid
 
+import tgproxy.errors as errors
 import tgproxy.providers as providers
 import tgproxy.utils as utils
 from tgproxy.queue import MemoryQueue
@@ -19,7 +20,12 @@ def register_channel_type(type, class_):
 
 def build_channel(url, **kwargs):
     parsed_url, channel_options = utils.parse_url(url)
-    return CHANNELS_TYPES[parsed_url.scheme.lower()].from_url(
+
+    channel_type = CHANNELS_TYPES.get(parsed_url.scheme.lower())
+    if not channel_type:
+        raise errors.UnknownChannelType(f'"{parsed_url.scheme}" is an unknown channel type. URL: {url}')
+
+    return channel_type.from_url(
         url,
         channel_options=channel_options,
         **kwargs,
