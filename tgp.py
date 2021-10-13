@@ -59,7 +59,7 @@ def main():
         build_channels_from_urls(args.channels_urls),
     )
     aiohttp.web.run_app(
-        app.serving_app(),
+        app,
         host=args.host,
         port=args.port,
     )

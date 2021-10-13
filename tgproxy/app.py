@@ -8,23 +8,20 @@ import tgproxy.errors as errors
 DEFAULT_LOGGER_NAME = 'tgproxy.app'
 
 
-class BaseApp:
+class BaseApp(web.Application):
     def __init__(self, logger_name=DEFAULT_LOGGER_NAME):
-        self._log = logging.getLogger(logger_name)
-
-        self._app = web.Application(
+        super().__init__(
             middlewares=[
-               self.error_middleware,
+               self._error_middleware,
             ],
         )
-        self._app.add_routes([
-            web.get('/ping.html', self.on_ping),
+        self._log = logging.getLogger(logger_name)
+
+        self.add_routes([
+            web.get('/ping.html', self._on_ping),
         ])
 
-    def serving_app(self):
-        return self._app
-
-    def success_response(self, status=200, **kwargs):
+    def _success_response(self, status=200, **kwargs):
         return web.json_response(
             data=dict(
                 status='success',
@@ -33,7 +30,7 @@ class BaseApp:
             status=status,
         )
 
-    def error_response(self, message, status=500, **kwargs):
+    def _error_response(self, message, status=500, **kwargs):
         return web.json_response(
             dict(
                 status='error',
@@ -44,18 +41,18 @@ class BaseApp:
         )
 
     @web.middleware
-    async def error_middleware(self, request, handler):
+    async def _error_middleware(self, request, handler):
         try:
             response = await handler(request)
         except errors.BaseError as e:
-            response = self.error_response(
+            response = self._error_response(
                 message=str(e),
                 status=e.http_status,
             )
 
         return response
 
-    async def on_ping(self, request):
+    async def _on_ping(self, request):
         return web.Response(
             text='OK',
         )
@@ -66,13 +63,13 @@ class APIApp(BaseApp):
         super().__init__()
 
         self.channels = dict(channels)
-        self._app.add_routes([
-            web.get('/', self.on_index),
-            web.get('/{channel_name}', self.on_channel_stat),
-            web.post('/{channel_name}', self.on_channel_send),
+        self.add_routes([
+            web.get('/', self._on_index),
+            web.get('/{channel_name}', self._on_channel_stat),
+            web.post('/{channel_name}', self._on_channel_send),
         ])
-        self._app.on_startup.append(self.start_background_channels_tasks)
-        self._app.on_shutdown.append(self.stop_background_channels_tasks)
+        self.on_startup.append(self.start_background_channels_tasks)
+        self.on_shutdown.append(self.stop_background_channels_tasks)
 
         self.background_tasks = list()
 
@@ -81,7 +78,7 @@ class APIApp(BaseApp):
         for ch in self.channels.values():
             self.background_tasks.append(
                 asyncio.create_task(
-                    ch.process_queue(),
+                    ch.process(),
                     name=ch,
                 ),
             )
@@ -102,25 +99,25 @@ class APIApp(BaseApp):
     def _has_failed_workers(self):
         return any(map(lambda x: x.cancelled() or x.done(), self.background_tasks))
 
-    def workers(self):
+    def _workers(self):
         return {
             task.get_name(): self._get_task_state(task) for task in self.background_tasks
         }
 
-    async def on_ping(self, request):
+    async def _on_ping(self, request):
         if self._has_failed_workers():
-            return self.error_response(
+            return self._error_response(
                 status=502,
                 message='Background workers canceled',
-                workers=self.workers(),
+                workers=self._workers(),
             )
 
-        return self.success_response(
-            workers=self.workers(),
+        return self._success_response(
+            workers=self._workers(),
         )
 
-    async def on_index(self, request):
-        return self.success_response(
+    async def _on_index(self, request):
+        return self._success_response(
             channels={
                 name: str(ch) for name, ch in self.channels.items()
             },
@@ -133,19 +130,19 @@ class APIApp(BaseApp):
             raise errors.ChannelNotFound(f'Channel "{channel_name}" not found')
         return channel
 
-    async def on_channel_send(self, request):
+    async def _on_channel_send(self, request):
         channel = self._get_channel(request)
-        message = channel.request_to_message(
+        message = channel.message_class.from_request(
             await request.post(),
         )
-        await channel.enqueue(message)
-        return self.success_response(
+        await channel.put(message)
+        return self._success_response(
             status=201,
             request_id=message.request_id,
         )
 
-    async def on_channel_stat(self, request):
+    async def _on_channel_stat(self, request):
         channel = self._get_channel(request)
-        return self.success_response(
-            **channel.get_stat(),
+        return self._success_response(
+            **channel.stat(),
         )

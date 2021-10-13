@@ -27,23 +27,11 @@ def build_channel(url, **kwargs):
 
     return channel_type.from_url(
         url,
-        channel_options=channel_options,
-        **kwargs,
+        **(channel_options | kwargs),
     )
 
 
 class Message:
-    def __init__(self, text, request_id=None, **options):
-        self.text = text
-        self.request_id = request_id or str(uuid.uuid1())
-        self.options = dict(options)
-
-    @functools.cache
-    def __repr__(self):
-        return f'Message(text="{self.text}", request_id="{self.request_id}", options={self.options})'
-
-
-class BaseChannel:
     # dict: name: {default: value}
     request_fields = {
         'text': {'default': '<Empty message>'},
@@ -51,10 +39,34 @@ class BaseChannel:
     }
 
     @classmethod
-    def from_url(cls, url, **kwargs):  # pragma: no cover
+    def from_request(cls, request):
+        message = cls(
+            **{
+                f: request.get(f, v.get('default'))
+                for f, v in cls.request_fields.items()
+                if request.get(f, v.get('default')) is not None
+            }
+        )
+        return message
+
+    def __init__(self, text, request_id=None, **options):
+        self.text = text
+        self.request_id = request_id or str(uuid.uuid1())
+        self.options = dict(options)
+
+    @functools.cache
+    def __repr__(self):
+        return f'{self.__class__.__name__}(text="{self.text}", request_id="{self.request_id}", options={self.options})'
+
+
+class BaseChannel:
+    message_class = Message
+
+    @classmethod
+    def from_url(cls, url, queue=None, **kwargs):  # pragma: no cover
         raise NotImplementedError()
 
-    def __init__(self, name, queue=None, logger_name=DEFAULT_LOGGER_NAME, channel_options=None, **kwargs):
+    def __init__(self, name, queue, logger_name=DEFAULT_LOGGER_NAME, channel_options=None, **kwargs):
         self.name = name
         self._queue = queue or MemoryQueue()
         self._log = logging.getLogger(f'{logger_name}.{name}')
@@ -68,34 +80,27 @@ class BaseChannel:
     def qsize(self):
         return self._queue.qsize()
 
-    def get_stat(self):
+    def stat(self):
         return self._stat
 
-    async def enqueue(self, message):
+    async def put(self, message):
+        await self._enqueue(message)
+
+    async def process(self):  # pragma: no cover
+        raise NotImplementedError()
+
+    async def _enqueue(self, message):
         self._log.info(f'Enque message: {message}')
         await self._queue.enqueue(message)
         self._stat['queued'] += 1
 
-    async def dequeue(self):
+    async def _dequeue(self):
         message = await self._queue.dequeue()
         self._log.info(f'Deque message: {message}')
         return message
 
-    def request_to_message(self, request):
-        message = Message(
-            **{
-                f: request.get(f, v.get('default'))
-                for f, v in self.request_fields.items()
-                if request.get(f, v.get('default')) is not None
-            }
-        )
-        return message
 
-    async def process_queue(self):  # pragma: no cover
-        raise NotImplementedError()
-
-
-class TelegramChannel(BaseChannel):
+class TelegramMessage(Message):
     request_fields = {
         'text': {'default': '<Empty message>'},
         'request_id': {},
@@ -105,34 +110,34 @@ class TelegramChannel(BaseChannel):
         'reply_to_message_id': {},
     }
 
+
+class TelegramChannel(BaseChannel):
+    message_class = TelegramMessage
+
     @classmethod
-    def from_url(cls, url, **kwargs):
+    def from_url(cls, url, queue=None, **kwargs):
         parsed_url, options = utils.parse_url(url)
         return cls(
             name=parsed_url.path.strip('/'),
-            bot_token=f'{parsed_url.username}:{parsed_url.password}',
-            chat_id=parsed_url.hostname,
-            **options,
-            **kwargs
+            queue=queue,
+            provider=providers.TelegramChat(
+                chat_id=parsed_url.hostname,
+                bot_token=f'{parsed_url.username}:{parsed_url.password}',
+                **(options | kwargs)
+            ),
+            **(options | kwargs)
         )
 
-    def __init__(self, name, bot_token, chat_id, queue=None, provider=None, channel_options=None, send_banner_on_startup=True, **kwargs):
+    def __init__(self, name, queue, provider, send_banner_on_startup=True, **kwargs):
         super().__init__(name, queue)
-        self._bot_token = bot_token
+        self._bot_token = provider.bot_token
         self._bot_name = self._bot_token[:self._bot_token.find(":")]
-        self._chat_id = chat_id
+        self._chat_id = provider.chat_id
 
-        self.channel_options = dict(channel_options)
         self.provider = provider
-        if not self.provider:
-            self.provider = providers.TelegramChat(
-                chat_id=self._chat_id,
-                bot_token=self._bot_token,
-                **self.channel_options,
-            )
-        self.send_banner_on_startup = bool(
-            int(self.channel_options['send_banner_on_startup']) if 'send_banner_on_startup' in self.channel_options else send_banner_on_startup,
-        )
+        self.send_banner_on_startup = bool(int(send_banner_on_startup))
+        self.channel_options = dict(kwargs)
+
         self._log.info(f'self.send_banner_on_startup == {self.send_banner_on_startup}')
 
     def __str__(self):
@@ -143,19 +148,19 @@ class TelegramChannel(BaseChannel):
         return f'telegram://{self._bot_name}:***@{self._chat_id}/{self.name}{co}'
 
     def _get_banner(self):
-        return self.request_to_message(
+        return self.message_class.from_request(
             dict(text=f'Start tgproxy on {socket.gethostname()}'),
         )
 
-    async def process_queue(self):
+    async def process(self):
         self._log.info(f'Start queue processor for {self}')
         if self.send_banner_on_startup:
-            await self.enqueue(self._get_banner())
+            await self.put(self._get_banner())
 
         async with self.provider.session() as provider:
             try:
                 while True:
-                    message = await self.dequeue()
+                    message = await self._dequeue()
                     self._log.info(f'Send message: {message}')
                     await self._send_message(provider, message)
             except asyncio.CancelledError:
