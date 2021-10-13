@@ -4,10 +4,16 @@ on: [push]
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version:
+          - "3.9"
+          - "3.10"
+        os:
+          - "ubuntu-latest"
+          - "windows-latest"
+          - "macos-latest"
 
     steps:
       - uses: actions/checkout@v2
@@ -26,7 +32,7 @@ jobs:
           echo "Run flake8"
           flake8 . --count --show-source --statistics --max-complexity=10 --show-source
           echo "Run isort checks"
-          isort **/*.py -c --diff
+          isort . -c --diff
       - name: Test with pytest
         run: |
           pytest -vv --disable-warnings --cov=tgproxy --cov-report term
