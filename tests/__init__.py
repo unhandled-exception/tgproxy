@@ -12,8 +12,8 @@ class NowTimeDeltaValue():
         self._last_time = None
 
     def __eq__(self, value):
-        value = round(value)
-        self._last_time = round(time.time())
+        value = round(value, 1)
+        self._last_time = round(time.time(), 1)
         return (value - self._delta_sec < self._last_time < value + self._delta_sec)
 
     def __repr__(self):
