@@ -138,11 +138,11 @@ class BaseChannel:
             await provider.send_message(message)
             self._log.info(f'Message sended: {message}')
             self._stat['sended'] += 1
-            self._stat['last_sended_at'] = round(time.time())
+            self._stat['last_sended_at'] = round(time.time(), 3)
         except providers.errors.ProviderError as e:
             self._stat['errors'] += 1
             self._stat['last_error'] = str(e)
-            self._stat['last_error_at'] = round(time.time())
+            self._stat['last_error_at'] = round(time.time(), 3)
             self._log.error(f'Message: {e} Error: {message}')
 
 

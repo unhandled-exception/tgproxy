@@ -7,7 +7,7 @@ class AnyValue():
 
 
 class NowTimeDeltaValue():
-    def __init__(self, delta_sec=1.5):
+    def __init__(self, delta_sec=2.5):
         self._delta_sec = delta_sec
         self._last_time = None
 
