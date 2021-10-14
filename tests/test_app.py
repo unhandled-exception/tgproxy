@@ -19,8 +19,12 @@ TEST_QUEUE_SIZE = 5
 TEST_PASSTHROUGH_SERVERS = ['http://127.0.0.1', 'http://127.0.1.1']
 
 
-def assert_telegram_call(
-    tc,
+def fetch_request_from_mock(m, item=0):
+    return list(m.requests.items())[item]
+
+
+def assert_telegram_request(
+    request,
     method='POST',
     bot_token='bot:token',
     data=None,
@@ -33,17 +37,17 @@ def assert_telegram_call(
         },
         **data
     )
-    assert tc[0][0] == method
-    assert str(tc[0][1]) == f'https://api.telegram.org/bot{bot_token}/sendMessage'
-    assert tc[1][0].kwargs['data'] == data
+    assert request[0][0] == method
+    assert str(request[0][1]) == f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    assert request[1][0].kwargs['data'] == data
 
 
 def assert_telegram_requests_count(m, count):
-    assert len(list(m.requests.items())[0][1]) == count
+    assert len(fetch_request_from_mock(m)[1]) == count
 
 
 @pytest.fixture
-def cli(loop, aiohttp_client):
+def sut(loop, aiohttp_client):
     tgproxy.queue.DEFAULT_QUEUE_MAXSIZE = TEST_QUEUE_SIZE
     tgproxy.providers.telegram.DEFAULT_RETRIES_OPTIONS = dict(
         stop=tenacity.stop_after_attempt(3),
@@ -63,8 +67,8 @@ def cli(loop, aiohttp_client):
     )
 
 
-async def test_ping_ok(cli):
-    resp = await cli.get('/ping.html')
+async def test_ping_ok(sut):
+    resp = await sut.get('/ping.html')
     assert resp.ok
     assert await resp.json() == {
         'status': 'success',
@@ -75,13 +79,13 @@ async def test_ping_ok(cli):
     }
 
 
-async def test_ping_fail(cli):
-    api = cli.server.app['api']
-    await api.stop_background_channels_tasks(cli.server.app)
+async def test_ping_fail(sut):
+    api = sut.server.app['api']
+    await api.stop_background_channels_tasks(sut.server.app)
     assert len(api.background_tasks) == len(TEST_CHANNELS)
     assert len(list(filter(lambda x: x.cancelled(), api.background_tasks))) == 0
 
-    resp = await cli.get('/ping.html')
+    resp = await sut.get('/ping.html')
     assert await resp.json() == {
         'status': 'error',
         'message': 'Background workers canceled',
@@ -93,14 +97,14 @@ async def test_ping_fail(cli):
     assert not resp.ok
 
 
-async def test_start_background_tasks(cli):
-    bt = cli.server.app['api'].background_tasks
+async def test_start_background_tasks(sut):
+    bt = sut.server.app['api'].background_tasks
     assert len(bt) == 2
     assert all([(not t.cancelled() and not t.done()) for t in bt])
 
 
-async def test_on_index_ok(cli):
-    resp = await cli.get('/')
+async def test_on_index_ok(sut):
+    resp = await sut.get('/')
     assert resp.ok
     assert await resp.json() == {
         'status': 'success',
@@ -111,8 +115,8 @@ async def test_on_index_ok(cli):
     }
 
 
-async def test_channel_not_found(cli):
-    resp = await cli.post('/not_found')
+async def test_channel_not_found(sut):
+    resp = await sut.post('/not_found')
     assert await resp.json() == {
         'message': 'Channel "not_found" not found',
         'status': 'error',
@@ -120,15 +124,15 @@ async def test_channel_not_found(cli):
     assert resp.status == 404
 
 
-async def test_channel_isfull(cli):
-    await cli.server.app['api'].stop_background_channels_tasks(cli.server.app['api'])
+async def test_channel_isfull(sut):
+    await sut.server.app['api'].stop_background_channels_tasks(sut.server.app['api'])
     assert tgproxy.queue.DEFAULT_QUEUE_MAXSIZE == TEST_QUEUE_SIZE
 
     for _ in range(TEST_QUEUE_SIZE):
-        await cli.post('/main', data={'text': 'Message'})
-    assert cli.server.app['api'].channels['main'].qsize() == TEST_QUEUE_SIZE
+        await sut.post('/main', data={'text': 'Message'})
+    assert sut.server.app['api'].channels['main'].qsize() == TEST_QUEUE_SIZE
 
-    resp = await cli.post('/main', data={'text': 'Message'})
+    resp = await sut.post('/main', data={'text': 'Message'})
     assert await resp.json() == {
         'message': f'Queue is full. Max size is {TEST_QUEUE_SIZE}',
         'status': 'error',
@@ -136,14 +140,14 @@ async def test_channel_isfull(cli):
     assert resp.status == 503
 
 
-async def test_successful_send_message(cli):
+async def test_successful_send_message(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(
-            re.compile(r'^https://api.telegram.org/bot'),
+            re.compile(r'^https://api\.telegram\.org/bot'),
             status=200,
             payload=dict(),
         )
-        resp = await cli.post(
+        resp = await sut.post(
             '/main',
             data=dict(
                 text='Test message',
@@ -157,16 +161,16 @@ async def test_successful_send_message(cli):
         }
 
         assert_telegram_requests_count(m, 1)
-        assert_telegram_call(
-            list(m.requests.items())[0],
+        assert_telegram_request(
+            fetch_request_from_mock(m),
             data={
                 'parse_mode': 'MarkdownV2',
                 'text': 'Test message',
             },
         )
 
-        assert cli.server.app['api'].channels['main'].qsize() == 0
-        assert cli.server.app['api'].channels['main'].stat() == {
+        assert sut.server.app['api'].channels['main'].qsize() == 0
+        assert sut.server.app['api'].channels['main'].stat() == {
             'errors': 0,
             'queued': 1,
             'sended': 1,
@@ -174,12 +178,12 @@ async def test_successful_send_message(cli):
         }
 
 
-async def test_no_reties_on_fatal_error(cli):
+async def test_no_reties_on_fatal_error(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, payload=dict())
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, payload=dict())
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=400, payload=dict())
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=400, payload=dict())
 
-        resp = await cli.post(
+        resp = await sut.post(
             '/main',
             data=dict(
                 text='Test message',
@@ -189,8 +193,8 @@ async def test_no_reties_on_fatal_error(cli):
         assert resp.ok
 
         assert_telegram_requests_count(m, 1)
-        assert cli.server.app['api'].channels['main'].qsize() == 0
-        assert cli.server.app['api'].channels['main'].stat() == {
+        assert sut.server.app['api'].channels['main'].qsize() == 0
+        assert sut.server.app['api'].channels['main'].stat() == {
             'errors': 1,
             'last_error': 'Status: 400. Body: <NO BODY>',
             'last_error_at': NowTimeDeltaValue(),
@@ -199,14 +203,14 @@ async def test_no_reties_on_fatal_error(cli):
         }
 
 
-async def test_reties_on_temporary_error(cli):
+async def test_reties_on_temporary_error(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=500, exception=aiohttp.ClientConnectionError())
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=500, payload=dict(message='bad response'))
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=200, payload=dict(message='sended'))
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=500, payload=dict(message='bad response'))
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=500, exception=aiohttp.ClientConnectionError())
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=500, payload=dict(message='bad response'))
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=200, payload=dict(message='sended'))
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=500, payload=dict(message='bad response'))
 
-        resp = await cli.post(
+        resp = await sut.post(
             '/main',
             data=dict(
                 text='Test message',
@@ -217,7 +221,7 @@ async def test_reties_on_temporary_error(cli):
 
         await asyncio.sleep(1)
         assert_telegram_requests_count(m, 3)
-        assert cli.server.app['api'].channels['main'].stat() == {
+        assert sut.server.app['api'].channels['main'].stat() == {
             'errors': 0,
             'queued': 1,
             'sended': 1,
@@ -225,17 +229,17 @@ async def test_reties_on_temporary_error(cli):
         }
 
 
-async def test_channel_statistics(cli):
+async def test_channel_statistics(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=200)
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=400, body='bad request')
-        m.post(re.compile(r'^https://api.telegram.org/bot'), status=200)
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=200)
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=400, body='bad request')
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=200)
 
-        await cli.post('/main', data=dict(text='Test message'))
-        await cli.post('/main', data=dict(text='Test message'))
-        await cli.post('/main', data=dict(text='Test message'))
+        await sut.post('/main', data=dict(text='Test message'))
+        await sut.post('/main', data=dict(text='Test message'))
+        await sut.post('/main', data=dict(text='Test message'))
 
-        resp = await cli.get('/main')
+        resp = await sut.get('/main')
 
         await asyncio.sleep(1)
         assert await resp.json() == {
@@ -251,15 +255,15 @@ async def test_channel_statistics(cli):
 
 
 @mock.patch('socket.gethostname', lambda: 'host.test.local')
-async def test_send_banner_on_startup(cli):
-    await cli.server.app['api'].stop_background_channels_tasks(cli.server.app['api'])
+async def test_send_banner_on_startup(sut):
+    await sut.server.app['api'].stop_background_channels_tasks(sut.server.app['api'])
 
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
-        cli.server.app['api'].channels['main'].send_banner_on_startup = True
-        await cli.server.app['api'].start_background_channels_tasks(cli.server.app['api'])
+        sut.server.app['api'].channels['main'].send_banner_on_startup = True
+        await sut.server.app['api'].start_background_channels_tasks(sut.server.app['api'])
         await asyncio.sleep(1)
-        assert_telegram_call(
-            list(m.requests.items())[0],
+        assert_telegram_request(
+            fetch_request_from_mock(m),
             data={
                 'text': 'Start tgproxy on host.test.local',
             },
