@@ -26,7 +26,7 @@ docker-build: lock
 act:
 #   https://github.com/nektos/act
 	@act -l
-	@act --rm -j tests docker-build
+	@act --rm -j tests -j docker-build
 
 pre-commit:
 	@pre-commit run -a

@@ -196,7 +196,7 @@ async def test_no_reties_on_fatal_error(sut):
         assert sut.server.app['api'].channels['main'].qsize() == 0
         assert sut.server.app['api'].channels['main'].stat() == {
             'errors': 1,
-            'last_error': 'Status: 400. Body: <NO BODY>',
+            'last_error': 'Status: 400. Body: {}',
             'last_error_at': NowTimeDeltaValue(),
             'queued': 1,
             'sended': 0,
@@ -244,7 +244,7 @@ async def test_channel_statistics(sut):
         await asyncio.sleep(1)
         assert await resp.json() == {
             'errors': 1,
-            'last_error': 'Status: 400. Body: <NO BODY>',
+            'last_error': 'Status: 400. Body: bad request',
             'last_error_at': NowTimeDeltaValue(),
             'queued': 3,
             'sended': 2,
