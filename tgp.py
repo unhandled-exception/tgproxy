@@ -14,6 +14,7 @@ Get channel statistics GET http://localhost:5000/chat_1
 """
 
 import argparse
+import asyncio
 import logging
 import sys
 
@@ -58,10 +59,12 @@ def main():
     api = tgproxy.HttpAPI(
         build_channels_from_urls(args.channels_urls),
     )
+
     aiohttp.web.run_app(
         api.app,
         host=args.host,
         port=args.port,
+        loop=asyncio.get_event_loop(),
     )
 
 
