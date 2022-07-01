@@ -3,6 +3,16 @@ all: test
 test: sync
 	@pipenv run pytest -vv
 
+lint: sync
+	@pip install flake8 isort mypy
+	@echo "Run flake8"
+	@flake8 . --count --show-source --statistics --max-complexity=10 --show-source
+	@echo "Run isort checks"
+	@isort . -c --diff
+
+pre-commit:
+	@pre-commit run -a
+
 test-log: sync
 	@pipenv run pytest -vv --log-level=INFO
 
@@ -17,8 +27,8 @@ sync:
 
 lock:
 	@pipenv lock
-	@pipenv lock -r > requirements.txt
-	@pipenv lock -r -d > requirements-dev.txt
+	@pipenv requirements > requirements.txt
+	@pipenv requirements --dev > requirements-dev.txt
 
 docker-build: lock
 	docker build . -t tgproxy:latest

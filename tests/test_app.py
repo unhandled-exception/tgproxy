@@ -47,7 +47,7 @@ def assert_telegram_requests_count(m, count):
 
 
 @pytest.fixture
-def sut(loop, aiohttp_client):
+def sut(event_loop, aiohttp_client):
     tgproxy.queue.DEFAULT_QUEUE_MAXSIZE = TEST_QUEUE_SIZE
     tgproxy.providers.telegram.DEFAULT_RETRIES_OPTIONS = dict(
         stop=tenacity.stop_after_attempt(3),
@@ -62,7 +62,7 @@ def sut(loop, aiohttp_client):
         ),
     )
     api.app['api'] = api
-    return loop.run_until_complete(
+    return event_loop.run_until_complete(
         aiohttp_client(api.app),
     )
 
