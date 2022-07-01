@@ -10,9 +10,6 @@ lint: sync
 	@echo "Run isort checks"
 	@isort . -c --diff
 
-pre-commit:
-	@pre-commit run -a
-
 test-log: sync
 	@pipenv run pytest -vv --log-level=INFO
 
