@@ -40,3 +40,6 @@ pre-commit:
 
 pc-install:
 	@pre-commit install
+
+upgrade:
+	@pipenv update --outdated -d

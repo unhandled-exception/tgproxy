@@ -5,6 +5,8 @@ FROM python:slim
 COPY . /app
 WORKDIR /app
 
+RUN apt update && apt install -y gcc
+
 RUN pip install -r requirements.txt
 EXPOSE 8080
 
