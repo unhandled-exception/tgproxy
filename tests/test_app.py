@@ -67,6 +67,7 @@ def sut(event_loop, aiohttp_client):
     )
 
 
+@pytest.mark.asyncio
 async def test_ping_ok(sut):
     resp = await sut.get('/ping.html')
     assert resp.ok
@@ -79,6 +80,7 @@ async def test_ping_ok(sut):
     }
 
 
+@pytest.mark.asyncio
 async def test_ping_fail(sut):
     api = sut.server.app['api']
     await api.stop_background_channels_tasks(sut.server.app)
@@ -97,12 +99,14 @@ async def test_ping_fail(sut):
     assert not resp.ok
 
 
+@pytest.mark.asyncio
 async def test_start_background_tasks(sut):
     bt = sut.server.app['api'].background_tasks
     assert len(bt) == 2
     assert all([(not t.cancelled() and not t.done()) for t in bt])
 
 
+@pytest.mark.asyncio
 async def test_on_index_ok(sut):
     resp = await sut.get('/')
     assert resp.ok
@@ -115,6 +119,7 @@ async def test_on_index_ok(sut):
     }
 
 
+@pytest.mark.asyncio
 async def test_channel_not_found(sut):
     resp = await sut.post('/not_found')
     assert await resp.json() == {
@@ -124,6 +129,7 @@ async def test_channel_not_found(sut):
     assert resp.status == 404
 
 
+@pytest.mark.asyncio
 async def test_channel_isfull(sut):
     await sut.server.app['api'].stop_background_channels_tasks(sut.server.app['api'])
     assert tgproxy.queue.DEFAULT_QUEUE_MAXSIZE == TEST_QUEUE_SIZE
@@ -140,6 +146,7 @@ async def test_channel_isfull(sut):
     assert resp.status == 503
 
 
+@pytest.mark.asyncio
 async def test_successful_send_message(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(
@@ -178,6 +185,7 @@ async def test_successful_send_message(sut):
         }
 
 
+@pytest.mark.asyncio
 async def test_no_reties_on_fatal_error(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=400, payload=dict())
@@ -203,6 +211,7 @@ async def test_no_reties_on_fatal_error(sut):
         }
 
 
+@pytest.mark.asyncio
 async def test_reties_on_temporary_error(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=500, exception=aiohttp.ClientConnectionError())
@@ -229,6 +238,7 @@ async def test_reties_on_temporary_error(sut):
         }
 
 
+@pytest.mark.asyncio
 async def test_channel_statistics(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=200)
@@ -255,6 +265,7 @@ async def test_channel_statistics(sut):
 
 
 @mock.patch('socket.gethostname', lambda: 'host.test.local')
+@pytest.mark.asyncio
 async def test_send_banner_on_startup(sut):
     await sut.server.app['api'].stop_background_channels_tasks(sut.server.app['api'])
 

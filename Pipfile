@@ -15,6 +15,7 @@ pytest-cov = "*"
 install = "*"
 ipython = "*"
 pytest-randomly = "*"
+pytest-asyncio = "*"
 
 [requires]
 python_version = "3.9"
