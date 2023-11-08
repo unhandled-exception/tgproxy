@@ -10,11 +10,11 @@ TELEGRAM_API_URL = 'https://api.telegram.org'
 DEFAULT_LOGGER_NAME = 'tgproxy.providers.telegram'
 
 DEFAULT_RETRIES_OPTIONS = dict(
-    stop=tenacity.stop_after_attempt(5),
+    stop=tenacity.stop_after_attempt(10),
     wait=tenacity.wait_random_exponential(
         multiplier=1,
         min=2,
-        max=32,
+        max=120,
     ),
 )
 
@@ -37,7 +37,7 @@ class TelegramChat:
         self._retries_options = dict(
             **DEFAULT_RETRIES_OPTIONS,
             retry=tenacity.retry_if_exception_type(ProviderTemporaryError),
-            after=tenacity.after_log(self._log, logging.INFO),
+            after=tenacity.after_log(self._log, logging.WARNING),
         )
 
     async def send_message(self, message):
@@ -96,7 +96,9 @@ class TelegramChat:
         except aiohttp.ClientConnectionError:
             pass
 
-        if response.status in [404, 400]:
+        if response.status >= 400 and response.status <= 499 and response.status not in [400, ]:
+            # На 400 не ретраимся, потому что иногда бывает временно:
+            # {"ok":false,"error_code":400,"description":"Bad Request: not enough rights to send text messages to the chat"}
             raise ProviderFatalError(f'Status: {response.status}. Body: {resp_text}')
 
         raise ProviderTemporaryError(f'Status: {response.status}. Body: {resp_text}')
