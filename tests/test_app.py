@@ -188,8 +188,8 @@ async def test_successful_send_message(sut):
 @pytest.mark.asyncio
 async def test_no_reties_on_fatal_error(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
-        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=400, payload=dict())
-        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=400, payload=dict())
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=401, payload=dict())
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=401, payload=dict())
 
         resp = await sut.post(
             '/main',
@@ -204,7 +204,7 @@ async def test_no_reties_on_fatal_error(sut):
         assert sut.server.app['api'].channels['main'].qsize() == 0
         assert sut.server.app['api'].channels['main'].stat() == {
             'errors': 1,
-            'last_error': 'Status: 400. Body: {}',
+            'last_error': 'Status: 401. Body: {}',
             'last_error_at': NowTimeDeltaValue(),
             'queued': 1,
             'sended': 0,
@@ -215,7 +215,7 @@ async def test_no_reties_on_fatal_error(sut):
 async def test_reties_on_temporary_error(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=500, exception=aiohttp.ClientConnectionError())
-        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=500, payload=dict(message='bad response'))
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=400, payload=dict(message='bad response'))
         m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=200, payload=dict(message='sended'))
         m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=500, payload=dict(message='bad response'))
 
@@ -242,7 +242,7 @@ async def test_reties_on_temporary_error(sut):
 async def test_channel_statistics(sut):
     with aioresponses(passthrough=TEST_PASSTHROUGH_SERVERS) as m:
         m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=200)
-        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=400, body='bad request')
+        m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=401, body='bad request')
         m.post(re.compile(r'^https://api\.telegram\.org/bot'), status=200)
 
         await sut.post('/main', data=dict(text='Test message'))
@@ -254,7 +254,7 @@ async def test_channel_statistics(sut):
         await asyncio.sleep(1)
         assert await resp.json() == {
             'errors': 1,
-            'last_error': 'Status: 400. Body: bad request',
+            'last_error': 'Status: 401. Body: bad request',
             'last_error_at': NowTimeDeltaValue(),
             'queued': 3,
             'sended': 2,
