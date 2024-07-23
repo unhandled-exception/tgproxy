@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-aiohttp = ">=3.8.0"
+aiohttp = ">=3.9.5"
 tenacity = "*"
 
 [dev-packages]
@@ -12,10 +12,9 @@ pytest = "*"
 aioresponses = "*"
 pytest-aiohttp = "*"
 pytest-cov = "*"
-install = "*"
 ipython = "*"
 pytest-randomly = "*"
 pytest-asyncio = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"

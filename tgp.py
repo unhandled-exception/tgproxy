@@ -33,7 +33,7 @@ class Args(argparse.ArgumentParser):
         )
         self.add_argument('channels_urls', nargs='+', help='List of channels uri. Formatting: telegram://bot:token@chat_id/channel_name?timeout=value')
         self.add_argument('-H', '--host', dest='host', default='localhost', help='Server hostname')
-        self.add_argument('-P', '--port', dest='port', default='5000', help='Server port')
+        self.add_argument('-P', '--port', dest='port', type=int, default=5000, help='Server port')
         self.add_argument('-d', '--debug', dest='debug', action='store_true', help='Debug mode')
 
     def error(self, message, exit_code=2):

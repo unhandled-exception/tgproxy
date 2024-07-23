@@ -29,7 +29,8 @@ jobs:
           docker run --env "TGPROXY_CHANNEL=${{ env.TGPROXY_CHANNEL }}" -p 8888:8080 --name tgproxy --rm -d ${{ env.TGPROXY_DOCKER_TAG }} \
       - name: Ping container
         run: |
-          sleep 5
+          sleep 15
+          docker container ls
           curl -v "http://localhost:8888/ping.html"
       - name: Stop container
         if: true
