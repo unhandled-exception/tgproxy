@@ -83,6 +83,7 @@ class BaseChannel:
             last_error=None,
             last_error_at=None,
         )
+        self._retryMessageDelayInSeconds = 5
 
         self._log.info(f'self.send_banner_on_startup == {self.send_banner_on_startup}')
 
@@ -109,8 +110,15 @@ class BaseChannel:
             try:
                 while True:
                     message = await self._dequeue()
+
                     self._log.info(f'Send message: {message}')
-                    await self._send_message(provider, message)
+                    while True:
+                        error = await self._send_message(provider, message)
+                        if error is None or isinstance(error, providers.errors.ProviderFatalError):
+                            break
+                        await asyncio.sleep(self._retryMessageDelayInSeconds)
+
+                    await self._queue.task_done()
             except asyncio.CancelledError:
                 self._log.info(f'Finish queue processor. Queue size: {self._queue.qsize()}')
             except Exception as e:
@@ -134,6 +142,7 @@ class BaseChannel:
         )
 
     async def _send_message(self, provider, message):
+        # return Exception if failed
         try:
             await provider.send_message(message)
             self._log.info(f'Message sended: {message}')
@@ -144,6 +153,9 @@ class BaseChannel:
             self._stat['last_error'] = str(e)
             self._stat['last_error_at'] = round(time.time(), 3)
             self._log.error(f'Error: {str(e)} Message: {message}', exc_info=sys.exc_info())
+            return e
+
+        return None
 
 
 class TelegramMessage(Message):
