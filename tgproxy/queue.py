@@ -38,7 +38,7 @@ class MemoryQueue(BaseQueue):
             raise errors.QueueFull(f'Queue is full. Max size is {self._queue.maxsize}')
 
     async def dequeue(self):
-        # Ждем сообщение из очереди и сразу сообщаем очереди, что задача выполнена
-        message = await self._queue.get()
+        return await self._queue.get()
+
+    async def task_done(self):
         self._queue.task_done()
-        return message

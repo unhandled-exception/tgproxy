@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 aiohttp = ">=3.9.5"
 tenacity = "*"
+pip = "*"
 
 [dev-packages]
 pytest = "*"
