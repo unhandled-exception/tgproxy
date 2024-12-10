@@ -143,7 +143,7 @@ class BaseChannel:
             self._stat['errors'] += 1
             self._stat['last_error'] = str(e)
             self._stat['last_error_at'] = round(time.time(), 3)
-            self._log.error(f'Message: {e} Error: {message}')
+            self._log.error(f'Error: {str(e)} Message: {message}', exc_info=sys.exc_info())
 
 
 class TelegramMessage(Message):
