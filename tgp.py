@@ -31,13 +31,13 @@ class Args(argparse.ArgumentParser):
             description=__doc__,
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-        self.add_argument('channels_urls', nargs='+', help='List of channels uri. Formatting: telegram://bot:token@chat_id/channel_name?timeout=value')
-        self.add_argument('-H', '--host', dest='host', default='localhost', help='Server hostname')
-        self.add_argument('-P', '--port', dest='port', type=int, default=5000, help='Server port')
-        self.add_argument('-d', '--debug', dest='debug', action='store_true', help='Debug mode')
+        self.add_argument("channels_urls", nargs="+", help="List of channels uri. Formatting: telegram://bot:token@chat_id/channel_name?timeout=value")
+        self.add_argument("-H", "--host", dest="host", default="localhost", help="Server hostname")
+        self.add_argument("-P", "--port", dest="port", type=int, default=5000, help="Server port")
+        self.add_argument("-d", "--debug", dest="debug", action="store_true", help="Debug mode")
 
     def error(self, message, exit_code=2):
-        print(f'error: {message}\n', file=sys.stderr)
+        print(f"error: {message}\n", file=sys.stderr)
         self.print_help(file=sys.stderr)
         sys.exit(exit_code)
 
@@ -54,7 +54,7 @@ def main():
     args = Args().parse_args()
     logging.basicConfig(
         level=logging.DEBUG if args.debug else DEFAULT_LOGGING_MODE,
-        format='%(asctime)s - %(levelname)s - %(name)s: %(message)s',
+        format="%(asctime)s - %(levelname)s - %(name)s: %(message)s",
     )
     api = tgproxy.HttpAPI(
         build_channels_from_urls(args.channels_urls),
@@ -64,9 +64,9 @@ def main():
         api.app,
         host=args.host,
         port=args.port,
-        loop=asyncio.get_event_loop(),
+        loop=asyncio.new_event_loop(),
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
