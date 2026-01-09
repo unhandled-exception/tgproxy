@@ -13,9 +13,11 @@ pytest = "*"
 aioresponses = "*"
 pytest-aiohttp = "*"
 pytest-cov = "*"
-ipython = "*"
 pytest-randomly = "*"
 pytest-asyncio = "*"
+aiohttp = "*"
+ipython = "*"
+coverage = "*"
 
 [requires]
 python_version = "3.14"
