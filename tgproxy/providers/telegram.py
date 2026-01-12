@@ -26,7 +26,6 @@ TELEGRAM_TEMPORARY_ERRORS = (
     aiohttp.NonHttpUrlClientError,
     aiohttp.ClientPayloadError,
     asyncio.TimeoutError,
-    asyncio.CancelledError,
 )
 
 
