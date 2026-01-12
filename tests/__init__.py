@@ -1,12 +1,12 @@
 import time
 
 
-class AnyValue():
+class AnyValue:
     def __eq__(self, value):
         return True
 
 
-class NowTimeDeltaValue():
+class NowTimeDeltaValue:
     def __init__(self, delta_sec=2.5):
         self._delta_sec = delta_sec
         self._last_time = None
@@ -14,7 +14,7 @@ class NowTimeDeltaValue():
     def __eq__(self, value):
         value = round(value, 1)
         self._last_time = round(time.time(), 1)
-        return (value - self._delta_sec < self._last_time < value + self._delta_sec)
+        return value - self._delta_sec < self._last_time < value + self._delta_sec
 
     def __repr__(self):
-        return f'{self.__class__.__name__}<{self._last_time}±{self._delta_sec}>'
+        return f"{self.__class__.__name__}<{self._last_time}±{self._delta_sec}>"

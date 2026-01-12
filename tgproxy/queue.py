@@ -3,7 +3,7 @@ import logging
 
 import tgproxy.errors as errors
 
-DEFAULT_LOGGER_NAME = 'tgproxy.queue.memory'
+DEFAULT_LOGGER_NAME = "tgproxy.queue.memory"
 DEFAULT_QUEUE_MAXSIZE = 10000
 
 
@@ -32,10 +32,10 @@ class MemoryQueue(BaseQueue):
     async def enqueue(self, message):
         try:
             # Кладем очередь без блокировок на ожидании особождения места в очереди
-            self._log.info(f'Enque message {message}')
+            self._log.info(f"Enque message {message}")
             self._queue.put_nowait(message)
         except asyncio.QueueFull:
-            raise errors.QueueFull(f'Queue is full. Max size is {self._queue.maxsize}')
+            raise errors.QueueFull(f"Queue is full. Max size is {self._queue.maxsize}")
 
     async def dequeue(self):
         return await self._queue.get()
